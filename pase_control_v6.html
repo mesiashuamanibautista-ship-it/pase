@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control PASE</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<div id="print-area" style="display:none"></div>
+
+<script src="https://unpkg.com/docx@9.5.0/build/index.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;color:#1d1d1f;font-size:14px}
+.app{max-width:1100px;margin:0 auto;padding:1.5rem}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
+.header-title{font-size:20px;font-weight:600}
+.header-sub{font-size:13px;color:#6e6e73;margin-top:2px}
+.tabs{display:flex;gap:4px;margin-bottom:1.5rem;border-bottom:1px solid #d2d2d7;flex-wrap:wrap}
+.tab{padding:8px 14px;font-size:13px;cursor:pointer;border:none;background:none;color:#6e6e73;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:#1d1d1f;border-bottom-color:#1d1d1f;font-weight:500}
+.tab:hover:not(.active){color:#1d1d1f}
+.panel{display:none}.panel.active{display:block}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:1.5rem}
+.metric{background:#fff;border-radius:12px;padding:14px 16px;border:1px solid #e5e5ea}
+.metric-label{font-size:12px;color:#6e6e73;margin-bottom:4px}
+.metric-val{font-size:24px;font-weight:600}
+.metric-val.danger{color:#d70015}.metric-val.warn{color:#9d5d00}.metric-val.ok{color:#1a7f37}
+.exp-list{display:flex;flex-direction:column;gap:8px}
+.exp-card{background:#fff;border:1px solid #e5e5ea;border-radius:12px;padding:14px 16px}
+.exp-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.exp-card-body{flex:1;cursor:pointer}
+.exp-num{font-size:13px;font-weight:600}
+.exp-inf{font-size:12px;color:#6e6e73;margin-top:2px}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border-radius:6px;font-weight:500}
+.badge-danger{background:#fff0f0;color:#d70015}
+.badge-warn{background:#fff8e6;color:#9d5d00}
+.badge-ok{background:#f0fff4;color:#1a7f37}
+.badge-info{background:#f0f5ff;color:#0055d4}
+.badge-gray{background:#f5f5f7;color:#6e6e73}
+.badge-cerrado{background:#334155;color:#fff;font-weight:600}
+.badge-etapa{background:#eff6ff;color:#1e40af}
+.badge-purple{background:#f3f0ff;color:#5b21b6}
+.badge-red{background:#fff0f0;color:#d70015}
+.badge-orange{background:#fff3e0;color:#b45309}
+.badge-green{background:#f0fff4;color:#1a7f37}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dot-danger{background:#d70015}.dot-warn{background:#9d5d00}.dot-ok{background:#1a7f37}
+.dot-cerrado{background:#334155}.dot-etapa{background:#1e40af}.dot-gray{background:#6e6e73}
+.stages{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.stage-pill{font-size:11px;padding:2px 8px;border-radius:20px;border:1px solid #e5e5ea;color:#6e6e73;opacity:0.45}
+.stage-pill.done{background:#f0fff4;color:#1a7f37;border-color:transparent;opacity:0.6}
+.stage-pill.active{border-color:transparent;font-weight:600;opacity:1;box-shadow:0 1px 4px rgba(0,0,0,0.10)}
+/* Colores activos por etapa */
+.stage-pill.active.etapa-0{background:#dbeafe;color:#1d4ed8}
+.stage-pill.active.etapa-1{background:#fef9c3;color:#854d0e}
+.stage-pill.active.etapa-2{background:#ffedd5;color:#c2410c}
+.stage-pill.active.etapa-3{background:#fce7f3;color:#9d174d}
+.stage-pill.active.etapa-4{background:#ede9fe;color:#6d28d9}
+.stage-pill.active.etapa-5{background:#f3e8d0;color:#92400e}
+.stage-pill.active.etapa-6{background:#dcfce7;color:#166534}
+.stage-pill.active.etapa-7{background:#f1f5f9;color:#475569;border:1px solid #cbd5e1}
+.btn-del{background:none;border:1px solid #e5e5ea;border-radius:8px;padding:5px 8px;cursor:pointer;color:#d70015;display:flex;align-items:center}
+.btn-del:hover{background:#fff0f0}
+.detail-wrap{background:#fff;border:1px solid #e5e5ea;border-radius:12px;padding:20px;margin-bottom:1rem}
+.detail-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;border-bottom:1px solid #e5e5ea;padding-bottom:16px}
+.detail-title{font-size:16px;font-weight:600}
+.detail-sub{font-size:13px;color:#6e6e73;margin-top:3px}
+.tl-item{display:flex;gap:12px;position:relative}
+.tl-item:not(:last-child) .tl-line{position:absolute;left:11px;top:24px;bottom:0;width:1px;background:#e5e5ea}
+.tl-dot-wrap{width:24px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding-top:2px}
+.tl-dot{width:10px;height:10px;border-radius:50%;border:2px solid #d2d2d7;background:#fff;flex-shrink:0}
+.tl-dot.done{background:#1a7f37;border-color:#1a7f37}
+.tl-dot.active{background:#0055d4;border-color:#0055d4}
+.tl-dot.danger{background:#d70015;border-color:#d70015}
+.tl-dot.warn{background:#9d5d00;border-color:#9d5d00}
+.tl-content{padding-bottom:18px;flex:1}
+.tl-name{font-size:13px;font-weight:500}
+.tl-meta{font-size:12px;color:#6e6e73;margin-top:2px}
+.tl-plazo{font-size:12px;margin-top:3px}
+.plazo-danger{color:#d70015}.plazo-warn{color:#9d5d00}.plazo-ok{color:#1a7f37}.plazo-gray{color:#6e6e73}
+.plazo-entidad{color:#5b21b6;font-size:11px;margin-top:2px}
+.action-btn{background:#fff;border:1px solid #e5e5ea;border-radius:8px;padding:9px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:7px;width:100%}
+.action-btn:hover{background:#f5f5f7}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1rem}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group.full{grid-column:1/-1}
+label{font-size:12px;color:#6e6e73}
+input,select{font-size:14px;padding:8px 10px;border-radius:8px;border:1px solid #d2d2d7;background:#fff;width:100%}
+.hon-card{background:#fff;border:1px solid #e5e5ea;border-radius:12px;padding:16px;margin-bottom:10px}
+.hon-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #f0f0f0}
+.hon-title{font-size:14px;font-weight:600;color:#1d1d1f}
+.hon-sub{font-size:12px;color:#6e6e73;margin-top:2px}
+.hon-montos{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.hon-monto{background:#f9f9fb;border-radius:8px;padding:8px 10px;text-align:center}
+.hon-monto-label{font-size:11px;color:#6e6e73;margin-bottom:2px}
+.hon-monto-val{font-size:15px;font-weight:600;color:#1d1d1f}
+.hon-monto-val.cobrado{color:#1a7f37}
+.hon-monto-val.pendiente{color:#d70015}
+.hon-monto-val.parcial{color:#9d5d00}
+.pago-row{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#f9f9fb;border-radius:8px;margin-bottom:5px;gap:8px}
+.pago-info{flex:1}
+.pago-concepto{font-size:12px;font-weight:500;color:#1d1d1f}
+.pago-meta{font-size:11px;color:#6e6e73;margin-top:1px}
+.pago-monto{font-size:13px;font-weight:600;color:#1a7f37;flex-shrink:0}
+.pago-pendiente{color:#d70015}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;justify-content:center}
+.modal-box{background:#fff;border-radius:16px;padding:24px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:16px;color:#1d1d1f}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:16px;border-top:1px solid #e5e5ea}
+@media print{
+  .app > .header, .tabs, #tab-dashboard, #tab-expedientes, #tab-nuevo, #tab-entidades, #tab-infracciones, #tab-honorarios, #tab-reportes { display:none !important; }
+  #print-area { display:block !important; }
+  body { background:#fff; padding:0; }
+}
+.btn-primary{background:#1d1d1f;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;cursor:pointer;font-weight:500}
+.btn-primary:hover{opacity:0.85}
+.btn-sec{background:#f5f5f7;color:#1d1d1f;border:1px solid #d2d2d7;border-radius:8px;padding:9px 18px;font-size:13px;cursor:pointer}
+.btn-word{background:#e8f0fe;color:#0055d4;border:1px solid #b8d0fc;border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:5px}
+.btn-word:disabled{opacity:0.4;cursor:not-allowed}
+.empty{text-align:center;padding:2rem 1rem;color:#6e6e73;font-size:14px}
+.ai-box{background:#f5f5f7;border-radius:12px;padding:14px;margin-top:1rem}
+.ai-label-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.ai-label{font-size:12px;color:#6e6e73;display:flex;align-items:center;gap:6px}
+.ai-output{font-size:12px;line-height:1.7;white-space:pre-wrap;max-height:280px;overflow-y:auto}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid #d2d2d7;border-top-color:#1d1d1f;border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.section-title{font-size:14px;font-weight:600;margin-bottom:10px}
+.sub-title{font-size:12px;color:#6e6e73;margin-bottom:8px}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.report-card{background:#fff;border:1px solid #e5e5ea;border-radius:12px;padding:16px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.bar-label{width:85px;color:#6e6e73;flex-shrink:0;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar-track{flex:1;height:5px;background:#f5f5f7;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px}
+.bar-count{width:18px;text-align:right;color:#6e6e73;font-size:11px}
+.act-item{background:#f5f5f7;border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.act-num{font-size:12px;font-weight:500}
+.act-desc{font-size:12px;color:#6e6e73;margin-top:2px}
+.act-date{font-size:11px;color:#6e6e73;flex-shrink:0}
+.confirm-overlay{background:#f5f5f7;border:1px solid #d2d2d7;border-radius:12px;padding:12px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.alerta-entidad{background:#f3f0ff;border:1px solid #c4b5fd;border-radius:8px;padding:8px 12px;font-size:12px;color:#5b21b6;margin-top:6px;display:flex;align-items:center;gap:6px}
+.ent-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.ent-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#fff;border:1px solid #e5e5ea;border-radius:8px;font-size:13px}
+.ent-tipo{font-size:11px;color:#6e6e73;margin-top:1px}
+.exp-judicial{background:#f3f0ff;border:1px solid #c4b5fd;border-radius:8px;padding:6px 10px;font-size:12px;color:#5b21b6;margin-top:6px;font-weight:500}
+/* Buscador de infracciones */
+.inf-search-wrap{position:relative}
+.inf-dropdown{position:absolute;z-index:100;top:100%;left:0;right:0;background:#fff;border:1px solid #d2d2d7;border-radius:8px;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.10);margin-top:2px;display:none}
+.inf-dropdown.open{display:block}
+.inf-item{padding:8px 12px;cursor:pointer;border-bottom:1px solid #f5f5f7;display:flex;gap:8px;align-items:flex-start}
+.inf-item:last-child{border-bottom:none}
+.inf-item:hover{background:#f5f5f7}
+.inf-cod{font-size:12px;font-weight:600;flex-shrink:0;min-width:40px}
+.inf-cod.muy-grave{color:#d70015}
+.inf-cod.grave{color:#9d5d00}
+.inf-cod.leve{color:#1a7f37}
+.inf-txt{font-size:12px;color:#1d1d1f;line-height:1.4}
+.inf-meta{font-size:11px;color:#6e6e73;margin-top:2px}
+.inf-preview{background:#f5f5f7;border-radius:8px;padding:10px 12px;margin-top:6px;font-size:12px;color:#1d1d1f;line-height:1.5;display:none}
+.inf-preview.visible{display:block}
+.inf-preview-cod{font-weight:600;margin-bottom:4px}
+.inf-preview-badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="header-title"><i class="ti ti-file-certificate" style="font-size:20px;vertical-align:-3px;margin-right:6px"></i>Control PASE</div>
+      <div class="header-sub">D.S.N°004-2020-MTC · TUO LPAG · TUO Ley N°27584 · Tabla infracciones 2026</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn-sec" style="font-size:12px;padding:6px 12px" onclick="exportarDatos()" title="Exportar todos los datos para respaldo"><i class="ti ti-database-export" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>Exportar datos</button>
+      <button class="btn-sec" style="font-size:12px;padding:6px 12px" onclick="document.getElementById('importar-input').click()" title="Importar datos desde respaldo"><i class="ti ti-database-import" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>Importar datos</button>
+      <input type="file" id="importar-input" accept=".json" style="display:none" onchange="importarDatos(event)">
+      <button class="btn-primary" onclick="showTab('nuevo')"><i class="ti ti-plus" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>Nuevo expediente</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('dashboard')"><i class="ti ti-layout-dashboard" style="font-size:13px;vertical-align:-2px;margin-right:3px"></i>Panel</button>
+    <button class="tab" onclick="showTab('expedientes')"><i class="ti ti-folder" style="font-size:13px;vertical-align:-2px;margin-right:3px"></i>Expedientes</button>
+    <button class="tab" onclick="showTab('nuevo')"><i class="ti ti-plus" style="font-size:13px;vertical-align:-2px;margin-right:3px"></i>Registrar</button>
+    <button class="tab" onclick="showTab('infracciones')"><i class="ti ti-list-search" style="font-size:13px;vertical-align:-2px;margin-right:3px"></i>Infracciones</button>
+    <button class="tab" onclick="showTab('honorarios')"><i class="ti ti-cash" style="font-size:13px;vertical-align:-2px;margin-right:3px"></i>Honorarios</button>
+    <button class="tab" onclick="showTab('entidades')"><i class="ti ti-building" style="font-size:13px;vertical-align:-2px;margin-right:3px"></i>Entidades</button>
+    <button class="tab" onclick="showTab('reportes')"><i class="ti ti-chart-bar" style="font-size:13px;vertical-align:-2px;margin-right:3px"></i>Reportes</button>
+  </div>
+
+  <div id="tab-dashboard" class="panel active">
+    <div class="metrics" id="metrics-row"></div>
+    <div class="section-title">Alertas de plazos</div>
+    <div id="alerts-list"></div>
+  </div>
+
+  <div id="tab-expedientes" class="panel">
+    <div id="exp-detail" style="display:none"></div>
+    <div id="exp-list-wrap"><div class="exp-list" id="exp-list"></div></div>
+  </div>
+
+  <div id="tab-nuevo" class="panel">
+    <div class="detail-wrap">
+      <div class="section-title">Datos del expediente</div>
+      <div class="form-grid">
+        <div class="form-group full"><label>Nombre del administrado</label><input type="text" id="f-nombre" placeholder="Apellidos y nombres"></div>
+        <div class="form-group"><label>DNI</label><input type="text" id="f-dni" placeholder="00000000"></div>
+        <div class="form-group"><label>Placa del vehículo</label><input type="text" id="f-placa" placeholder="ABC-123"></div>
+        <div class="form-group"><label>Entidad</label><select id="f-entidad"></select></div>
+
+        <!-- PITs MÚLTIPLES -->
+        <div class="form-group full">
+          <label style="font-weight:600;color:#1d1d1f;font-size:13px">PITs / Papeletas de infracción <span style="font-size:11px;color:#6e6e73;font-weight:400">(mínimo 1, hasta 5)</span></label>
+        </div>
+        <div id="pits-container" style="grid-column:1/-1;display:flex;flex-direction:column;gap:10px">
+          <!-- PIT 1 -->
+          <div class="pit-row" id="pit-row-1" style="background:#f9f9fb;border:1px solid #e5e5ea;border-radius:10px;padding:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:start">
+              <div class="form-group"><label>N° PIT 1 <span style="color:#d70015">*</span></label><input type="text" id="f-pit-1" placeholder="Ej: 70355"></div>
+              <div class="form-group"><label>Fecha papeleta</label><input type="date" id="f-pit-fecha-1"></div>
+              <div class="form-group">
+                <label>Código infracción</label>
+                <div class="inf-search-wrap">
+                  <input type="text" id="f-inf-buscar-1" placeholder="G58, M01, velocidad..." autocomplete="off" oninput="buscarInfraccionPit(1)" onfocus="buscarInfraccionPit(1)">
+                  <div class="inf-dropdown" id="inf-dropdown-1"></div>
+                </div>
+              </div>
+              <div style="padding-top:18px;display:flex;align-items:center;gap:6px">
+                <span class="badge badge-gray" id="pit-badge-1" style="display:none"></span>
+                <button type="button" class="btn-del" style="padding:4px 7px" onclick="limpiarPitRow(1)" title="Limpiar PIT 1"><i class="ti ti-eraser" style="font-size:13px"></i></button>
+              </div>
+            </div>
+            <div class="inf-preview" id="inf-preview-1"></div>
+          </div>
+          <!-- PITs 2-5 opcionales -->
+          <div id="pit-extra-rows"></div>
+        </div>
+        <div class="form-group full" style="margin-top:-4px">
+          <button type="button" class="btn-sec" style="font-size:12px;padding:6px 14px;width:fit-content" onclick="agregarPitRow()" id="btn-add-pit"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>Agregar otro PIT</button>
+        </div>
+
+        <div class="form-group"><label>Etapa inicial</label><select id="f-etapa">
+          <option value="0">Descargo — administrado (15 d.h.)</option>
+          <option value="1">Apelación — administrado (15 d.h.)</option>
+          <option value="2">Caducidad del PAS (9 meses)</option>
+          <option value="3">Prescripción de multa (4 años)</option>
+          <option value="4">Cumplimiento</option>
+          <option value="5">Revocación/Nulidad</option>
+          <option value="6">Demanda — Poder Judicial</option>
+          <option value="7">Caso cerrado / Terminado</option>
+        </select></div>
+        <div class="form-group"><label>Fecha notificación al administrado</label><input type="date" id="f-fecha-not"></div>
+        <div class="form-group"><label>Fecha notificación a la entidad <span style="font-size:11px">(si aplica)</span></label><input type="date" id="f-fecha-ent"></div>
+        <div class="form-group"><label>Fecha notificación RFS <span style="font-size:11px;color:#6e6e73">(si está en etapa impugnación RFS)</span></label><input type="date" id="f-fecha-rfs"></div>
+        <div class="form-group"><label>N° Resolución Final Sancionadora <span style="font-size:11px;color:#6e6e73">(si aplica)</span></label><input type="text" id="f-num-rfs" placeholder="Ej: N°0045-2025"></div>
+        <div class="form-group full"><label>N° expediente judicial <span style="font-size:11px">(si ya está en etapa judicial)</span></label><input type="text" id="f-exp-judicial" placeholder="Ej: 00317-2025-0-3406-JR-CI-01"></div>
+        <div class="form-group"><label>Último documento / actuación <span style="font-size:11px;color:#6e6e73">(opcional)</span></label><input type="text" id="f-ultimo-doc" placeholder="Ej: Resolución N°02, Auto admisorio"></div>
+        <div class="form-group"><label>Fecha del último documento</label><input type="date" id="f-ultimo-doc-fecha"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-primary" onclick="registrarExpediente()">Registrar expediente</button>
+        <button class="btn-sec" onclick="showTab('expedientes')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-infracciones" class="panel">
+    <div class="detail-wrap">
+      <div class="section-title">Tabla de Infracciones 2026</div>
+      <div class="sub-title">D.S.N°016-2009-MTC y modificatorias · D.S.N°011-2026-MTC · UIT 2026: S/5,500</div>
+      <input type="text" id="inf-tab-buscar" placeholder="Buscar por código o descripción..." style="margin-bottom:14px" oninput="renderTablaInfracciones()">
+      <div id="tabla-infracciones"></div>
+    </div>
+  </div>
+
+  <!-- HONORARIOS -->
+  <div id="tab-honorarios" class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div>
+        <div class="section-title" style="margin-bottom:2px">Honorarios por expediente</div>
+        <div style="font-size:12px;color:#6e6e73">Control de pagos de clientes — honorario fijo + adicional por etapa</div>
+      </div>
+      <button class="btn-primary" onclick="exportarHonorariosCSV()"><i class="ti ti-table-export" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>Exportar Excel</button>
+    </div>
+    <!-- Resumen -->
+    <div class="metrics" id="hon-metrics" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem"></div>
+    <!-- Buscador -->
+    <div style="margin-bottom:1rem">
+      <input type="text" id="hon-buscar" placeholder="Buscar por nombre, N° PIT, placa o entidad..." oninput="renderHonorarios()" style="width:100%;font-size:13px">
+    </div>
+    <!-- Lista de honorarios -->
+    <div id="hon-list"></div>
+  </div>
+
+  <div id="tab-entidades" class="panel">
+    <div class="detail-wrap">
+      <div class="section-title">Entidades registradas</div>
+      <div id="ent-list" class="ent-list"></div>
+      <div style="border-top:1px solid #e5e5ea;padding-top:14px">
+        <div class="section-title" style="font-size:13px">Agregar entidad</div>
+        <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+          <div class="form-group"><label>Nombre completo</label><input type="text" id="ent-nombre" placeholder="Ej: Municipalidad Provincial de Satipo"></div>
+          <div class="form-group"><label>Tipo</label><select id="ent-tipo"><option>MTC</option><option>SUTRAN</option><option>SAT</option><option>Municipalidad Provincial</option><option>Municipalidad Distrital</option><option>Otro</option></select></div>
+          <div class="form-group"><label>Ciudad / Provincia</label><input type="text" id="ent-ciudad" placeholder="Ej: Satipo, Junín"></div>
+        </div>
+        <button class="btn-primary" onclick="agregarEntidad()"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>Agregar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-reportes" class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div>
+        <div class="section-title" style="margin-bottom:2px">Reportes</div>
+        <div style="font-size:12px;color:#6e6e73">Resumen general de expedientes PASE</div>
+      </div>
+      <button class="btn-primary" onclick="imprimirReporte()"><i class="ti ti-table-export" style="font-size:13px;vertical-align:-1px;margin-right:5px"></i>Exportar a Excel</button>
+    </div>
+    <div class="report-grid" id="report-content" style="margin-bottom:1.5rem"></div>
+    <div class="detail-wrap" id="report-tabla-wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="section-title" style="margin-bottom:0">Listado completo de expedientes</div>
+        <input type="text" id="rep-buscar" placeholder="Buscar por nombre, PIT, placa..." style="width:260px;font-size:13px" oninput="renderTablaReporte()">
+      </div>
+      <div id="report-tabla"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// TABLA DE INFRACCIONES 2026
+// ============================================================
+const INFRACCIONES = [
+  // MUY GRAVES
+  {cod:"M01",calif:"Muy grave",pct:100,txt:"Conducir con presencia de alcohol en la sangre en proporción mayor a lo previsto en el Código Penal, o bajo los efectos de estupefacientes, narcóticos y/o alucinógenos comprobado con el examen respectivo o por negarse al mismo y que haya participado en un accidente de tránsito."},
+  {cod:"M02",calif:"Muy grave",pct:50,txt:"Conducir con presencia de alcohol en la sangre en proporción mayor a lo previsto en el Código Penal, bajo los efectos de estupefacientes, narcóticos y/o alucinógenos comprobada con el examen respectivo o por negarse al mismo."},
+  {cod:"M03",calif:"Muy grave",pct:50,txt:"Conducir un vehículo automotor sin tener licencia de conducir o permiso provisional."},
+  {cod:"M04",calif:"Muy grave",pct:100,txt:"Conducir vehículos estando la licencia de conducir retenida, suspendida o estando inhabilitado para obtener licencia de conducir."},
+  {cod:"M05",calif:"Muy grave",pct:50,txt:"Conducir un vehículo con Licencia de Conducir cuya clase o categoría no corresponde al vehículo que conduce."},
+  {cod:"M06",calif:"Muy grave",pct:24,txt:"Estacionar en las curvas, puentes, túneles, zonas estrechas de la vía, pasos a nivel, pasos a desnivel en cambios de rasante, pendientes y cruces de ferrocarril."},
+  {cod:"M07",calif:"Muy grave",pct:24,txt:"Participar en competencias de velocidad en eventos no autorizados."},
+  {cod:"M08",calif:"Muy grave",pct:24,txt:"Permitir a un menor de edad la conducción de un vehículo automotor, sin autorización o permiso provisional."},
+  {cod:"M09",calif:"Muy grave",pct:24,txt:"Conducir un vehículo con cualquiera de sus sistemas de dirección, frenos, suspensión, luces o eléctrico en mal estado, previa inspección técnica vehicular."},
+  {cod:"M10",calif:"Muy grave",pct:12,txt:"Abastecer de combustible un vehículo del servicio de transporte público de pasajeros con personas a bordo del vehículo."},
+  {cod:"M11",calif:"Muy grave",pct:12,txt:"Conducir vehículos de las categorías M o N sin parachoques o dispositivo antiempotramiento cuando corresponda; o un vehículo de la categoría L5 sin parachoques posterior, conforme a lo establecido en el Reglamento Nacional de Vehículos."},
+  {cod:"M12",calif:"Muy grave",pct:12,txt:"No detenerse al aproximarse a un vehículo de transporte escolar debidamente identificado que está recogiendo o dejando escolares."},
+  {cod:"M13",calif:"Muy grave",pct:12,txt:"Conducir un vehículo con neumático(s), cuya banda de rodadura presente desgaste inferior al establecido en el Reglamento Nacional de Vehículos."},
+  {cod:"M14",calif:"Muy grave",pct:12,txt:"No detenerse al llegar a un cruce ferroviario a nivel o reiniciar la marcha sin haber comprobado que no se aproxima tren o vehículo ferroviario, o cruzar la vía ferrea por lugares distintos a los cruces a nivel establecidos."},
+  {cod:"M15",calif:"Muy grave",pct:12,txt:"Circular produciendo contaminación en un índice superior a los límites máximos permisibles de emisión de gases contaminantes."},
+  {cod:"M16",calif:"Muy grave",pct:12,txt:"Circular en sentido contrario al tránsito autorizado."},
+  {cod:"M17",calif:"Muy grave",pct:12,txt:"Cruzar una intersección o girar, estando el semáforo con luz roja y no existiendo la indicación en contrario."},
+  {cod:"M18",calif:"Muy grave",pct:12,txt:"Desobedecer las indicaciones sobre el tránsito que realiza el efectivo de la Policía Nacional del Perú asignado al control de tránsito, conforme a lo dispuesto en el artículo 57 del presente Reglamento y en el marco del Protocolo de control de tránsito. (Mod. D.S.N°011-2026-MTC)"},
+  {cod:"M19",calif:"Muy grave",pct:12,txt:"Conducir vehículos sin cumplir con las restricciones que consigna la Licencia de Conducir."},
+  {cod:"M20a",calif:"Muy grave",pct:18,txt:"No respetar el límite máximo de velocidad: superar el límite hasta en 10 km/h adicionales."},
+  {cod:"M20b",calif:"Muy grave",pct:24,txt:"No respetar el límite máximo de velocidad: superar el límite en más de 10 km/h hasta en 30 km/h adicionales."},
+  {cod:"M20c",calif:"Muy grave",pct:50,txt:"No respetar el límite máximo de velocidad: superar el límite en más de 30 km/h adicionales."},
+  {cod:"M20d",calif:"Muy grave",pct:18,txt:"No respetar el límite mínimo de velocidad establecido."},
+  {cod:"M21",calif:"Muy grave",pct:12,txt:"Estacionar interrumpiendo totalmente el tránsito."},
+  {cod:"M22",calif:"Muy grave",pct:12,txt:"Detenerse para cargar o descargar mercancías en la calzada y/o en los lugares que puedan constituir un peligro u obstáculo o interrumpan la circulación."},
+  {cod:"M23",calif:"Muy grave",pct:12,txt:"Estacionar o detener el vehículo en el carril de circulación, en carreteras o caminos donde existe berma lateral."},
+  {cod:"M24",calif:"Muy grave",pct:12,txt:"Circular sin Placa Única Nacional de rodaje o sin alguno de los elementos que la componen. (Mod. D.S.N°011-2026-MTC)",puntos:90,medidaPreventiva:"Internamiento del vehículo",respSolidaria:true},
+  {cod:"M25",calif:"Muy grave",pct:12,txt:"No dar preferencia de paso a los vehículos de emergencia y vehículos oficiales cuando hagan uso de sus señales audibles y visibles."},
+  {cod:"M26",calif:"Muy grave",pct:12,txt:"Conducir un vehículo especial que no se ajuste a las exigencias reglamentarias sin la autorización correspondiente."},
+  {cod:"M27",calif:"Muy grave",pct:50,txt:"Conducir un vehículo que no cuente con el certificado de aprobación de inspección técnica vehicular. Esta infracción no aplica para el caso de los vehículos L5 de la clasificación vehicular."},
+  {cod:"M28",calif:"Muy grave",pct:12,txt:"Conducir un vehículo sin contar con la póliza del Seguro Obligatorio de Accidentes de Tránsito, o Certificado de Accidentes de Tránsito, cuando corresponda, o éstos no se encuentre vigente."},
+  // M29, M30, M31 DEROGADAS por D.S.N°011-2026-MTC
+  {cod:"M33",calif:"Muy grave",pct:12,txt:"Circular, conducir u operar máquinas amarillas o verdes por las vías públicas terrestres."},
+  {cod:"M34",calif:"Muy grave",pct:12,txt:"Circular produciendo ruidos que superen los límites máximos permisibles."},
+  {cod:"M35",calif:"Muy grave",pct:12,txt:"Voltear en U sobre la misma calzada, en las curvas, puentes, pasos a desnivel, vías expresas, túneles, estructuras elevadas, cima de cuesta, cruce ferroviario a nivel."},
+  {cod:"M36",calif:"Muy grave",pct:12,txt:"Transportar carga sin los dispositivos de sujeción o seguridad establecidos."},
+  {cod:"M37",calif:"Muy grave",pct:0,txt:"Conducir y ocasionar un accidente de tránsito con daños personales, inobservando las normas de tránsito dispuestas en el presente Reglamento."},
+  {cod:"M38",calif:"Muy grave",pct:0,txt:"Conducir un vehículo para el servicio de transporte público y ocasionar un accidente de tránsito con daños personales inobservando las normas de tránsito dispuestas por el presente Reglamento."},
+  {cod:"M39",calif:"Muy grave",pct:0,txt:"Conducir y ocasionar un accidente de tránsito con lesiones graves o muerte inobservando las normas de tránsito dispuestas en el presente Reglamento."},
+  {cod:"M40",calif:"Muy grave",pct:5,txt:"Conducir un vehículo con la licencia de conducir vencida."},
+  {cod:"M41a",calif:"Muy grave",pct:150,txt:"Circular, interrumpir y/o impedir el tránsito, en situaciones de desastre natural o emergencia, incumpliendo las disposiciones de la autoridad competente para la restricción de acceso a las vías."},
+  {cod:"M41b1",calif:"Muy grave",pct:12,txt:"Circular en contravención a la prohibición de circulación de vehículos o a las restricciones de tránsito establecidas en la norma que declare el estado de emergencia por orden interno. Primera vez."},
+  {cod:"M41b2",calif:"Muy grave",pct:24,txt:"Circular en contravención a la prohibición de circulación de vehículos o a las restricciones de tránsito establecidas en la norma que declare el estado de emergencia por orden interno. Reincidencia."},
+  {cod:"M42",calif:"Muy grave",pct:5,txt:"Conducir un vehículo de la categoria L5 de la clasificación vehicular, que no cuente con el certificado de aprobación de inspección técnica vehicular."},
+  {cod:"M43",calif:"Muy grave",pct:12,txt:"No respetar el derecho preferente de paso del/de la ciclista o del/de la conductor/a del VMP."},
+  {cod:"M44",calif:"Muy grave",pct:12,txt:"Obstruir la ciclovía."},
+  {cod:"M45",calif:"Muy grave",pct:12,txt:"Realizar la circulación por rutas que no forman parte de caminos, vías urbanas o del Sistema Nacional de Carreteras – SINAC, evadiendo el pago del peaje."},
+  {cod:"M46",calif:"Muy grave",pct:12,txt:"Efectuar maniobras y/o acciones generando daños materiales a la infraestructura o garitas de pago de peaje."},
+  {cod:"M47",calif:"Muy grave",pct:12,txt:"Circular con placas adulteradas, ilegibles, sin iluminación o que tengan adherido algún material, que impida su lectura a través de medios electrónicos, computarizados u otro tipo de mecanismos tecnológicos que permitan verificar la comisión de las infracciones de tránsito. (Inc. D.S.N°011-2026-MTC)",puntos:50,medidaPreventiva:"Internamiento del vehículo",respSolidaria:true},
+  {cod:"M48",calif:"Muy grave",pct:50,txt:"Conducir un vehículo cuyas características registrables o condiciones técnicas han sido modificadas, alteradas o agregadas, atentando contra la seguridad de los usuarios o por no corresponder los datos consignados en la Tarjeta de Identificación Vehicular con los del vehículo. (Inc. D.S.N°011-2026-MTC)",puntos:50,medidaPreventiva:"Internamiento del vehículo",respSolidaria:true},
+  {cod:"M49",calif:"Muy grave",pct:100,txt:"No respetar la señal de altura máxima permitida en la vía pública. (Inc. D.S.N°011-2026-MTC) Multa: 1 UIT",puntos:50,medidaPreventiva:"Retención de la licencia de conducir e internamiento del vehículo",respSolidaria:true},
+  {cod:"M50",calif:"Muy grave",pct:100,txt:"No respetar la señal de altura máxima permitida en la vía pública, provocando daños a la infraestructura y/o generando interrupción del tránsito. (Inc. D.S.N°011-2026-MTC) Multa: 1 UIT + suspensión licencia 1 año",puntos:60,medidaPreventiva:"Retención de la licencia de conducir e internamiento del vehículo",respSolidaria:true},
+  // GRAVES
+  {cod:"G01",calif:"Grave",pct:8,txt:"Adelantar o sobrepasar en forma indebida a otro vehículo."},
+  {cod:"G02",calif:"Grave",pct:8,txt:"No hacer señales, ni tomar las precauciones para girar, voltear en U, pasar de un carril de la calzada a otro o detener el vehículo."},
+  {cod:"G03",calif:"Grave",pct:8,txt:"Detener el vehículo bruscamente sin motivo."},
+  {cod:"G04",calif:"Grave",pct:8,txt:"No detenerse antes de la línea de parada, línea de parada adelantada o antes de las áreas de intersección de calzadas o no respetar el derecho de paso del/de la peatón/a o el/la ciclista o del/de la conductor/a del VMP."},
+  {cod:"G05",calif:"Grave",pct:8,txt:"No mantener una distancia suficiente, razonable y prudente, de acuerdo al tipo de vehículo y la vía por la que se conduce, mientras se desplaza o al detenerse detrás de otro."},
+  {cod:"G06",calif:"Grave",pct:8,txt:"No ubicar el vehículo con la debida anticipación en el carril donde va efectuar el giro o volteo."},
+  {cod:"G07",calif:"Grave",pct:8,txt:"No conducir por el carril de extremo derecho de la calzada un vehículo del servicio de transporte público de pasajeros o de carga o de desplazamiento lento o un vehículo automotor menor."},
+  {cod:"G08",calif:"Grave",pct:8,txt:"No utilizar el carril derecho para recoger o dejar pasajeros o carga."},
+  {cod:"G09",calif:"Grave",pct:8,txt:"Retroceder, salvo casos indispensables para mantener libre la circulación, para incorporarse a ella o para estacionar el vehículo."},
+  {cod:"G10",calif:"Grave",pct:8,txt:"Incumplir las disposiciones sobre el uso de las vías de tránsito rápido y/o de acceso restringido."},
+  {cod:"G11",calif:"Grave",pct:8,txt:"Circular, estacionar o detenerse sobre una isla de encauzamiento, canalizadora, de refugio o divisoria del tránsito, marcas delimitadoras de carriles, separadores centrales, bermas, aceras, áreas verdes, pasos peatonales, jardines o rampas para minusválidos."},
+  {cod:"G12",calif:"Grave",pct:8,txt:"Girar estando el semáforo con luz roja y flecha verde, sin respetar el derecho preferente de paso de los peatones."},
+  {cod:"G13",calif:"Grave",pct:8,txt:"Conducir un vehículo con mayor número de personas al número de asientos señalado en la Tarjeta de Identificación Vehicular; y llevar pasajeros de pie en vehículos del servicio público de transporte urbano de pasajeros si la altura interior del vehículo es menor a 1,80 metros."},
+  {cod:"G14",calif:"Grave",pct:8,txt:"Tener la puerta, capot o maletera del vehículo abierta, cuando el vehículo está en marcha."},
+  {cod:"G15",calif:"Grave",pct:8,txt:"No utilizar las luces intermitentes de emergencia de un vehículo cuando se detiene por razones de fuerza mayor, obstaculizando el tránsito, o no colocar los dispositivos de seguridad reglamentarios cuando el vehículo queda inmovilizado en la vía pública."},
+  {cod:"G16",calif:"Grave",pct:8,txt:"Conducir un vehículo por una vía en la cual no está permitida la circulación o sobre mangueras contra incendios."},
+  {cod:"G17",calif:"Grave",pct:8,txt:"Conducir vehículos que tengan lunas o vidrios polarizados o acondicionados de modo tal que impidan la visibilidad del interior del vehículo, sin la autorización correspondiente."},
+  {cod:"G18a",calif:"Grave",pct:8,txt:"Conducir un vehículo sin que ambas manos estén sobre el volante de dirección, excepto cuando es necesario realizar los cambios de velocidad o accionar otros comandos."},
+  {cod:"G18b",calif:"Grave",pct:8,txt:"Conducir un vehículo usando algún dispositivo móvil u objeto portátil que implique dejar de conducir con ambas manos sobre el volante de dirección."},
+  {cod:"G19",calif:"Grave",pct:8,txt:"Conducir un vehículo de la categoría M o N que carezca de vidrios de seguridad reglamentarios o que su parabrisas se encuentre deteriorado, trizado o con objetos impresos, calcomanías, carteles u otros elementos en el área de barrido del limpiaparabrisas y que impidan la visibilidad del conductor."},
+  {cod:"G20",calif:"Grave",pct:8,txt:"Conducir un vehículo que no cuenta con las luces o dispositivos retrorreflectivos previstos en los reglamentos pertinentes."},
+  {cod:"G21",calif:"Grave",pct:8,txt:"Conducir un vehículo sin espejos retrovisores."},
+  {cod:"G22",calif:"Grave",pct:8,txt:"Conducir un vehículo cuando llueve, llovizne o garúe, sin tener operativo el sistema de limpiaparabrisas."},
+  {cod:"G23",calif:"Grave",pct:8,txt:"Conducir un vehículo del servicio de transporte público urbano de pasajeros con personas de pie, si la altura interior del vehículo no supera a 1,80 metros."},
+  {cod:"G24",calif:"Grave",pct:8,txt:"Conducir un vehículo con el motor en punto neutro o apagado."},
+  {cod:"G25",calif:"Grave",pct:8,txt:"Conducir un vehículo sin portar el Certificado SOAT físico, excepto que se cuente con certificado electrónico; o sin portar el Certificado contra Accidentes de Tránsito; o que éstos no correspondan al uso del vehículo."},
+  {cod:"G26",calif:"Grave",pct:8,txt:"Conducir un vehículo de la categoría M o N con la salida del tubo de escape en la parte lateral derecha, de modo tal que las emisiones o gases sean expulsados hacia la acera por donde circulan los peatones."},
+  {cod:"G27",calif:"Grave",pct:8,txt:"Conducir un vehículo cuya carga o pasajeros obstruya la visibilidad de los espejos laterales."},
+  {cod:"G28",calif:"Grave",pct:8,txt:"En vehículos de las categorías M y N, no llevar puesto el cinturón de seguridad y/o permitir que los ocupantes del vehículo no lo utilicen, en los casos en que, de acuerdo a las normas vigentes, exista tal obligación."},
+  {cod:"G29",calif:"Grave",pct:8,txt:"Circular en forma desordenada o haciendo maniobras peligrosas."},
+  {cod:"G30",calif:"Grave",pct:8,txt:"Circular transportando personas en la parte exterior de la carrocería o permitir que sobresalga parte del cuerpo de la(s) personas(s) transportada(s) en el vehículo."},
+  {cod:"G31a",calif:"Grave",pct:8,txt:"Circular en las vías públicas urbanas por la noche o cuando la luz natural sea insuficiente o cuando las condiciones de visibilidad sean escasas sin tener encendido el sistema de luces reglamentarias; o circular en la red vial nacional, departamental o regional, sin tener las luces bajas encendidas durante las veinticuatro (24) horas."},
+  {cod:"G31b",calif:"Grave",pct:8,txt:"Circular en las vías públicas terrestres en donde se encuentre instalada la señal vertical informativa 'ZONA DE NEBLINA' sin tener las luces intermitentes de emergencia encendidas cuando el vehículo automotor tenga la obligación de contar con ellas."},
+  {cod:"G32",calif:"Grave",pct:8,txt:"Circular por la ciclovía."},
+  {cod:"G33",calif:"Grave",pct:8,txt:"Circular transportando cargas que sobrepasen las dimensiones de la carrocería o que se encuentren ubicadas fuera de la misma; o transportar materiales sueltos, fluidos u otros sin adoptar las medidas de seguridad que impidan su caída a la vía."},
+  {cod:"G34",calif:"Grave",pct:8,txt:"Remolcar vehículos sin las medidas de seguridad."},
+  {cod:"G35",calif:"Grave",pct:8,txt:"Usar luces altas en vías urbanas o hacer mal uso de las luces."},
+  {cod:"G36",calif:"Grave",pct:8,txt:"Compartir el asiento de conducir con otra persona, animal o cosa."},
+  {cod:"G37",calif:"Grave",pct:8,txt:"No reducir la velocidad al ingresar a un túnel o cruzar un puente, intersecciones o calles congestionadas, cuando transite por cuestas, cuando se aproxime y tome una curva o cambie de dirección, cuando circule por una vía estrecha o sinuosa, cuando se encuentre con un vehículo que circula en sentido contrario o cuando existan peligros especiales con respecto a los peatones u otros vehículos o por razones del clima o condiciones especiales de la vía."},
+  {cod:"G38",calif:"Grave",pct:8,txt:"Transitar lentamente por el carril de la izquierda, causando congestión o riesgo o rápidamente por el carril de la derecha."},
+  {cod:"G39",calif:"Grave",pct:8,txt:"Aumentar la velocidad cuando es alcanzado por otro vehículo que tiene la intención de sobrepasarlo o adelantarlo."},
+  {cod:"G40",calif:"Grave",pct:8,txt:"Estacionar el vehículo en zonas prohibidas o rígidas señalizadas o sin las señales de seguridad reglamentarias en caso de emergencia."},
+  {cod:"G41",calif:"Grave",pct:8,txt:"Estacionar o detener el vehículo sobre la línea demarcatoria de intersección, dentro de éstas o en el crucero peatonal (paso peatonal)."},
+  {cod:"G42",calif:"Grave",pct:8,txt:"Estacionar frente a la entrada o salida de garajes, estacionamientos públicos, vías privadas o en las salidas de salas, espectáculos, centros deportivos en funcionamiento."},
+  {cod:"G43",calif:"Grave",pct:8,txt:"Estacionar a una distancia menor de cinco (5) metros de una bocacalle, de las entradas de hospitales o centros de asistencia médica, cuerpos de bomberos o de hidrantes de servicio contra incendios, salvo los vehículos relacionados a la función del local."},
+  {cod:"G44",calif:"Grave",pct:8,txt:"Estacionar a menos de tres (3) metros de las puertas de establecimientos educacionales, teatros, iglesias y hoteles, salvo los vehículos relacionados a la función del local."},
+  {cod:"G45",calif:"Grave",pct:8,txt:"Estacionar a menos de veinte (20) metros de un cruce ferroviario a nivel."},
+  {cod:"G46",calif:"Grave",pct:8,txt:"Estacionar en zonas no permitidas por la autoridad competente, a menos de diez (10) metros de un cruce peatonal o de un paradero de buses, así como en el propio sitio determinado para la parada del bus, de conformidad con lo dispuesto en el artículo 215 del presente Reglamento. (Mod. D.S.N°011-2026-MTC)"},
+  {cod:"G47",calif:"Grave",pct:8,txt:"Estacionar en lugar que afecte la operatividad del servicio de transporte público de pasajeros o carga o que afecte la seguridad, visibilidad o fluidez del tránsito o impida observar la señalización."},
+  {cod:"G48",calif:"Grave",pct:8,txt:"Estacionar un ómnibus, microbus, casa rodante, camión, remolque, semirremolque, plataforma, tanque, tractocamión, tráiler, volquete o furgón, en vías públicas de zona urbana, excepto en los lugares que habilite para tal fin la autoridad competente, mediante la señalización pertinente."},
+  {cod:"G49",calif:"Grave",pct:8,txt:"Estacionar un vehículo de categoría M, N u O a una distancia menor a un metro de la parte delantera o posterior de otro ya estacionado, salvo cuando se estacione en diagonal o perpendicular a la vía."},
+  {cod:"G50",calif:"Grave",pct:8,txt:"Estacionar en los terminales o estaciones de ruta, fuera de los estacionamientos externos determinados por la autoridad competente."},
+  {cod:"G51",calif:"Grave",pct:8,txt:"Estacionar un vehículo automotor por la noche en lugares donde, por la falta de alumbrado público, se impide su visibilidad, o en el día, cuando, por lluvia, llovizna o neblina u otro factor, la visibilidad es escasa, sin mantener encendidas las luces de estacionamiento."},
+  {cod:"G52",calif:"Grave",pct:8,txt:"Estacionar un vehículo en vías con pendientes pronunciadas sin asegurar su inmovilización."},
+  {cod:"G53",calif:"Grave",pct:8,txt:"Desplazar o empujar un vehículo bien estacionado, con el propósito de ampliar un espacio o tratar de estacionar otro vehículo."},
+  {cod:"G54",calif:"Grave",pct:8,txt:"Abandonar el vehículo en la vía pública."},
+  {cod:"G55",calif:"Grave",pct:8,txt:"Utilizar la vía pública para efectuar reparaciones, salvo casos de emergencia."},
+  // G56 DEROGADA por D.S.N°011-2026-MTC
+  {cod:"G57",calif:"Grave",pct:8,txt:"No respetar las señales que rigen el tránsito, cuyo incumplimiento no se encuentre tipificado en otra infracción."},
+  {cod:"G58",calif:"Grave",pct:8,txt:"No presentar la Tarjeta de Identificación Vehicular, la Licencia de Conducir o el Documento Nacional de Identidad o documento de identidad, según corresponda."},
+  {cod:"G59",calif:"Grave",pct:8,txt:"Conducir un vehículo de la categoría L, con excepción de la categoría L5, sin tener puesto el casco de seguridad o anteojos protectores, en caso de no tener parabrisas; o permitir que los demás ocupantes no tengan puesto el casco de seguridad."},
+  // G60 DEROGADA por D.S.N°011-2026-MTC
+  {cod:"G61",calif:"Grave",pct:8,txt:"No llevar las placas de rodaje en el lugar que corresponde."},
+  // G62 DEROGADA por D.S.N°011-2026-MTC
+  {cod:"G63",calif:"Grave",pct:8,txt:"Utilizar señales audibles o visibles iguales o similares a las que utilizan los vehículos de emergencia o vehículos oficiales."},
+  // G64 DEROGADA por D.S.N°011-2026-MTC
+  {cod:"G65",calif:"Grave",pct:8,txt:"No ceder el paso a otros vehículos que tienen preferencia."},
+  {cod:"G66",calif:"Grave",pct:8,txt:"Seguir a los vehículos de emergencia y vehículos oficiales para avanzar más rápidamente."},
+  {cod:"G70",calif:"Grave",pct:8,txt:"Detener el vehículo sobre la demarcación en el pavimento de la señal 'No bloquear cruce'."},
+  {cod:"G71",calif:"Grave",pct:8,txt:"Circular por las vías públicas terrestres donde se encuentran instaladas garitas o infraestructura de peaje, sin pagar el monto del peaje aprobado por la autoridad competente o el establecido en los contratos de concesión respectivos."},
+  {cod:"G72a",calif:"Grave",pct:8,txt:"Utilizar, mientras se conduce el vehículo, cualquier dispositivo electrónico que reproduzca imágenes o videos con fines de entretenimiento visual."},
+  {cod:"G72b",calif:"Grave",pct:8,txt:"Utilizar un vehículo que tenga instalados los dispositivos electrónicos permitidos obstaculizando la visibilidad del conductor mientras conduce o las señales emitidas por el tablero de control del vehículo."},
+  {cod:"G73",calif:"Grave",pct:8,txt:"Adelantar o sobrepasar a la bicicleta u otros ciclos o al VMP, incumpliendo la obligación de efectuar dicha maniobra por el carril de la izquierda."},
+  {cod:"G74",calif:"Grave",pct:8,txt:"Abrir o dejar abierta la puerta o capot de un vehículo automotor, dificultando la circulación de la bicicleta u otros ciclos o del VMP."},
+  {cod:"G75",calif:"Grave",pct:8,txt:"Deteriorar, adulterar, destruir o sustraer las Placas de exhibición, rotativa o transitoria. (Inc. D.S.N°011-2026-MTC)",puntos:20,medidaPreventiva:"Retención del vehículo",respSolidaria:true},
+  {cod:"G76",calif:"Grave",pct:8,txt:"Usar las placas de exhibición, rotativa o transitoria fuera de los horarios o rutas establecidas. (Inc. D.S.N°011-2026-MTC)",puntos:20,medidaPreventiva:"Retención del vehículo",respSolidaria:true},
+  // LEVES
+  {cod:"L01",calif:"Leve",pct:4,txt:"Dejar mal estacionado el vehículo en lugares permitidos."},
+  {cod:"L02",calif:"Leve",pct:5,txt:"Estacionar un vehículo en zonas de parqueo destinadas a vehículos que transportan a personas con discapacidad o conducidos por éstos."},
+  {cod:"L04",calif:"Leve",pct:4,txt:"Abrir o dejar abierta la puerta de un vehículo estacionado, dificultando la circulación vehicular."},
+  {cod:"L05",calif:"Leve",pct:4,txt:"Utilizar el carril de giro a la izquierda para continuar la marcha en cualquier dirección que no sea la específicamente señalada."},
+  {cod:"L06",calif:"Leve",pct:4,txt:"Arrojar, depositar o abandonar objetos o sustancias en la vía pública que dificulten la circulación."},
+  {cod:"L07",calif:"Leve",pct:4,txt:"Utilizar la bocina para llamar la atención en forma innecesaria."},
+  {cod:"L08",calif:"Leve",pct:4,txt:"Hacer uso de bocinas de descarga de aire comprimido en el ámbito urbano."}
+];
+
+function califColor(c){
+  if(c==='Muy grave')return'badge-red';
+  if(c==='Grave')return'badge-orange';
+  return'badge-green';
+}
+function califCodColor(c){
+  if(c==='Muy grave')return'muy-grave';
+  if(c==='Grave')return'grave';
+  return'leve';
+}
+function uitSoles(pct){
+  return pct>0?'S/'+(5500*pct/100).toLocaleString('es-PE'):'—';
+}
+
+let infSeleccionada = null;
+
+function buscarInfraccion(){
+  const q = document.getElementById('f-inf-buscar').value.trim().toLowerCase();
+  const dd = document.getElementById('inf-dropdown');
+  if(!q){dd.classList.remove('open');return;}
+  const codLimpio = q.replace(/[-\s]/g,'');
+  const res = INFRACCIONES.filter(i=>{
+    const cod = i.cod.toLowerCase().replace(/[-\s]/g,'');
+    return cod.includes(codLimpio) || i.txt.toLowerCase().includes(q) || i.calif.toLowerCase().includes(q);
+  }).slice(0,12);
+  if(res.length===0){dd.innerHTML='<div style="padding:10px 12px;font-size:13px;color:#6e6e73">Sin resultados</div>';dd.classList.add('open');return;}
+  dd.innerHTML = res.map(i=>`
+    <div class="inf-item" onclick="seleccionarInfraccion('${i.cod}')">
+      <div class="inf-cod ${califCodColor(i.calif)}">${i.cod}</div>
+      <div><div class="inf-txt">${i.txt.length>80?i.txt.slice(0,80)+'…':i.txt}</div>
+      <div class="inf-meta">${i.calif} · ${i.pct}% UIT · S/${(5500*i.pct/100).toLocaleString('es-PE')}</div></div>
+    </div>`).join('');
+  dd.classList.add('open');
+}
+
+function seleccionarInfraccion(cod){
+  const inf = INFRACCIONES.find(i=>i.cod===cod);
+  if(!inf)return;
+  infSeleccionada = inf;
+  document.getElementById('f-inf-buscar').value = `${inf.cod} — ${inf.txt.slice(0,60)}${inf.txt.length>60?'…':''}`;
+  document.getElementById('inf-dropdown').classList.remove('open');
+  const prev = document.getElementById('inf-preview');
+  prev.classList.add('visible');
+  prev.innerHTML = `
+    <div class="inf-preview-cod">${inf.cod}</div>
+    <div style="font-size:13px;line-height:1.5">${inf.txt}</div>
+    <div class="inf-preview-badges">
+      <span class="badge ${califColor(inf.calif)}">${inf.calif}</span>
+      <span class="badge badge-gray">${inf.pct}% UIT</span>
+      <span class="badge badge-gray">S/${(5500*inf.pct/100).toLocaleString('es-PE')}</span>
+    </div>`;
+}
+
+document.addEventListener('click', function(e){
+  const dd = document.getElementById('inf-dropdown');
+  if(dd && !dd.contains(e.target) && e.target.id!=='f-inf-buscar') dd.classList.remove('open');
+});
+
+function renderTablaInfracciones(){
+  const q = (document.getElementById('inf-tab-buscar')||{value:''}).value.trim().toLowerCase();
+  const lista = q ? INFRACCIONES.filter(i=>i.cod.toLowerCase().includes(q)||i.txt.toLowerCase().includes(q)||i.calif.toLowerCase().includes(q)) : INFRACCIONES;
+  const el = document.getElementById('tabla-infracciones');
+  if(!el)return;
+  if(lista.length===0){el.innerHTML='<div class="empty">Sin resultados</div>';return;}
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html += '<thead><tr style="border-bottom:2px solid #e5e5ea">';
+  html += '<th style="text-align:left;padding:8px 10px;color:#6e6e73;font-weight:500;width:60px">Código</th>';
+  html += '<th style="text-align:left;padding:8px 10px;color:#6e6e73;font-weight:500">Infracción</th>';
+  html += '<th style="text-align:center;padding:8px 10px;color:#6e6e73;font-weight:500;width:90px">Calificación</th>';
+  html += '<th style="text-align:center;padding:8px 10px;color:#6e6e73;font-weight:500;width:60px">% UIT</th>';
+  html += '<th style="text-align:center;padding:8px 10px;color:#6e6e73;font-weight:500;width:90px">Multa S/</th>';
+  html += '</tr></thead><tbody>';
+  lista.forEach(i=>{
+    html += `<tr style="border-bottom:1px solid #f5f5f7">
+      <td style="padding:8px 10px;font-weight:600" class="${califCodColor(i.calif)}">${i.cod}</td>
+      <td style="padding:8px 10px;line-height:1.4">${i.txt}</td>
+      <td style="padding:8px 10px;text-align:center"><span class="badge ${califColor(i.calif)}">${i.calif}</span></td>
+      <td style="padding:8px 10px;text-align:center">${i.pct}%</td>
+      <td style="padding:8px 10px;text-align:center;font-weight:500">${i.pct>0?'S/'+(5500*i.pct/100).toLocaleString('es-PE'):'—'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+// ============================================================
+// ETAPAS Y FERIADOS
+// ============================================================
+const ETAPAS=[
+  {nombre:"Descargo",diasHab:15,base:"Art. 7.2 D.S.N°004-2020-MTC",tieneEntidad:true,diasEntidad:30},
+  {nombre:"Apelación",diasHab:15,base:"Art. 15 D.S.N°004-2020-MTC",tieneEntidad:true,diasEntidad:30},
+  {nombre:"Caducidad del PAS",diasHab:270,base:"Art. 14 D.S.N°004-2020-MTC / Art. 237-A Ley N°27444",tieneEntidad:false},
+  {nombre:"Prescripción de multa",diasHab:1460,base:"Art. 13 D.S.N°004-2020-MTC",tieneEntidad:false},
+  {nombre:"Cumplimiento",diasHab:null,base:"Art. 192 y Art. 199 TUO LPAG — Eficacia y ejecutoriedad del acto administrativo municipal",tieneEntidad:false},
+  {nombre:"Revocación/Nulidad",diasHab:null,base:"Art. 203.1.4 TUO LPAG",tieneEntidad:false},
+  {nombre:"Demanda — Poder Judicial",diasHab:null,base:"Art. 17 TUO Ley N°27584",tieneEntidad:false},
+  {nombre:"Caso cerrado",diasHab:null,base:"Expediente concluido",tieneEntidad:false,cerrado:true}
+];
+const FERIADOS=["2025-01-01","2025-04-17","2025-04-18","2025-05-01","2025-06-29","2025-07-28","2025-07-29","2025-08-30","2025-10-08","2025-11-01","2025-12-08","2025-12-25","2026-01-01","2026-04-02","2026-04-03","2026-05-01","2026-06-29","2026-07-28","2026-07-29","2026-08-30","2026-10-08","2026-11-01","2026-12-08","2026-12-25"];
+
+function diasHabilesDesde(f,n){if(!f)return null;let d=new Date(f),c=0;while(c<n){d.setDate(d.getDate()+1);const s=d.toISOString().slice(0,10);if(d.getDay()!==0&&d.getDay()!==6&&!FERIADOS.includes(s))c++;}return d;}
+function diasHabilesRestantes(fv){if(!fv)return null;const h=new Date();h.setHours(0,0,0,0);let d=new Date(h),c=0;const sg=fv>=h?1:-1;while(d.toDateString()!==fv.toDateString()){d.setDate(d.getDate()+sg);const s=d.toISOString().slice(0,10);if(d.getDay()!==0&&d.getDay()!==6&&!FERIADOS.includes(s))c++;}return sg*c;}
+function calcVencAdm(exp){
+  const et=ETAPAS[exp.etapaIdx];
+  if(!et||!et.diasHab)return null;
+  if(et.usaFechaRfs) return exp.fechaRfs ? diasHabilesDesde(exp.fechaRfs, et.diasHab) : null;
+  if(!exp.fechaNotificacion)return null;
+  return diasHabilesDesde(exp.fechaNotificacion,et.diasHab);
+}
+function calcVencEnt(exp){const et=ETAPAS[exp.etapaIdx];if(!et.tieneEntidad||!exp.fechaNotificacionEntidad)return null;return diasHabilesDesde(exp.fechaNotificacionEntidad,et.diasEntidad);}
+function statusAdm(exp){
+  const et=ETAPAS[exp.etapaIdx];
+  if(!et) return{label:"Sin etapa",cls:"gray",dias:null};
+  if(et.cerrado) return{label:"✓ Cerrado",cls:"cerrado",dias:null};
+  const v=calcVencAdm(exp);
+  if(!v)return{label:et.nombre,cls:"etapa",dias:null};
+  const r=diasHabilesRestantes(v);
+  if(r<0)return{label:`Vencido hace ${Math.abs(r)} d.h.`,cls:"danger",dias:r};
+  if(r<=2)return{label:`Vence en ${r} d.h.`,cls:"danger",dias:r};
+  if(r<=5)return{label:`Vence en ${r} d.h.`,cls:"warn",dias:r};
+  return{label:`${r} d.h. restantes`,cls:"ok",dias:r};
+}
+function statusEnt(exp){const v=calcVencEnt(exp);if(!v)return null;const r=diasHabilesRestantes(v);if(r<0)return{label:`Entidad: plazo vencido hace ${Math.abs(r)} d.h.`,cls:"warn"};if(r<=5)return{label:`Entidad: ${r} d.h. para resolver`,cls:"warn"};return{label:`Entidad: ${r} d.h. para resolver`,cls:"ok"};}
+function fmtFecha(s){if(!s)return'—';const d=new Date(s+'T00:00:00');return d.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'numeric'});}
+
+// ============================================================
+// DATOS
+// ============================================================
+const ENTIDADES_DEFAULT=[
+  {id:'e1',nombre:'MTC',tipo:'MTC',ciudad:'Lima'},
+  {id:'e2',nombre:'SUTRAN',tipo:'SUTRAN',ciudad:'Lima'},
+  {id:'e3',nombre:'SAT Lima',tipo:'SAT',ciudad:'Lima'},
+  {id:'e4',nombre:'Municipalidad Provincial de Satipo',tipo:'Municipalidad Provincial',ciudad:'Satipo, Junín'},
+  {id:'e5',nombre:'Municipalidad Provincial de Huancayo',tipo:'Municipalidad Provincial',ciudad:'Huancayo, Junín'},
+  {id:'e6',nombre:'Municipalidad Provincial de Tarma',tipo:'Municipalidad Provincial',ciudad:'Tarma, Junín'},
+  {id:'e7',nombre:'Municipalidad Provincial de Junín',tipo:'Municipalidad Provincial',ciudad:'Junín'}
+];
+let entidades=[];
+try{entidades=JSON.parse(localStorage.getItem('pase_entidades_v6')||localStorage.getItem('pase_entidades_v5')||localStorage.getItem('pase_entidades_v4')||'null')||ENTIDADES_DEFAULT;}catch(e){entidades=[...ENTIDADES_DEFAULT];}
+
+
+let expedientes=[];
+try{
+  const stored=JSON.parse(localStorage.getItem('pase_exps_v6')||localStorage.getItem('pase_exps_v5')||localStorage.getItem('pase_exps_v4')||localStorage.getItem('pase_exps_v3')||'null');
+  if(stored&&stored.length>0){
+    expedientes=stored;
+  }else{expedientes=[];}
+}catch(e){expedientes=[];}
+
+function save(){try{localStorage.setItem('pase_exps_v6',JSON.stringify(expedientes));localStorage.setItem('pase_entidades_v6',JSON.stringify(entidades));}catch(e){}}
+function nombreEntidad(id){const e=entidades.find(x=>x.id===id);return e?e.nombre:id||'—';}
+function poblarSelectEntidad(){const sel=document.getElementById('f-entidad');if(!sel)return;sel.innerHTML=entidades.map(e=>`<option value="${e.id}">${e.nombre}</option>`).join('');}
+function renderEntidades(){
+  const el=document.getElementById('ent-list');if(!el)return;
+  if(entidades.length===0){el.innerHTML='<div class="empty">No hay entidades</div>';return;}
+  el.innerHTML=entidades.map(e=>`<div class="ent-item"><div><div>${e.nombre}</div><div class="ent-tipo">${e.tipo}${e.ciudad?' · '+e.ciudad:''}</div></div><button class="btn-del" onclick="eliminarEntidad('${e.id}')"><i class="ti ti-trash"></i></button></div>`).join('');
+}
+function agregarEntidad(){
+  const nombre=document.getElementById('ent-nombre').value.trim();const tipo=document.getElementById('ent-tipo').value;const ciudad=document.getElementById('ent-ciudad').value.trim();
+  if(!nombre){alert('Ingresa el nombre.');return;}
+  entidades.push({id:'e'+Date.now(),nombre,tipo,ciudad});
+  save();document.getElementById('ent-nombre').value='';document.getElementById('ent-ciudad').value='';
+  renderEntidades();poblarSelectEntidad();
+}
+function eliminarEntidad(id){
+  if(expedientes.some(e=>e.entidadId===id)&&!confirm('Esta entidad está en uso. ¿Eliminar?'))return;
+  entidades=entidades.filter(e=>e.id!==id);save();renderEntidades();poblarSelectEntidad();
+}
+
+function showTab(t){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.querySelectorAll('.tab').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+t+"'"))b.classList.add('active');});
+  if(t==='honorarios'){renderHonorarios();}
+  if(t==='dashboard')renderDashboard();
+  if(t==='expedientes'){document.getElementById('exp-detail').style.display='none';document.getElementById('exp-list-wrap').style.display='block';renderExpList();}
+  if(t==='nuevo')poblarSelectEntidad();
+  if(t==='entidades')renderEntidades();
+  if(t==='infracciones')renderTablaInfracciones();
+  if(t==='reportes')renderReportes();
+}
+
+function renderDashboard(){
+  const total=expedientes.length;
+  const vencidos=expedientes.filter(e=>{const s=statusAdm(e);return s.cls==='danger'&&s.dias!==null;}).length;
+  const proximos=expedientes.filter(e=>statusAdm(e).cls==='warn').length;
+  const ok=expedientes.filter(e=>statusAdm(e).cls==='ok').length;
+  const cerrados=expedientes.filter(e=>ETAPAS[e.etapaIdx]&&ETAPAS[e.etapaIdx].cerrado).length;
+  document.getElementById('metrics-row').innerHTML=`
+    <div class="metric"><div class="metric-label">Total expedientes</div><div class="metric-val">${total}</div></div>
+    <div class="metric"><div class="metric-label">Plazos vencidos</div><div class="metric-val danger">${vencidos}</div></div>
+    <div class="metric"><div class="metric-label">Próximos a vencer</div><div class="metric-val warn">${proximos}</div></div>
+    <div class="metric"><div class="metric-label">En plazo</div><div class="metric-val ok">${ok}</div></div>
+    <div class="metric"><div class="metric-label">Casos cerrados</div><div class="metric-val" style="color:#334155">${cerrados}</div></div>`;
+  const alertas=expedientes.filter(e=>{const s=statusAdm(e);return s.cls==='danger'||s.cls==='warn';});
+  const al=document.getElementById('alerts-list');
+  if(alertas.length===0){al.innerHTML='<div class="empty"><i class="ti ti-circle-check" style="font-size:28px;display:block;margin-bottom:8px"></i>Sin alertas pendientes</div>';return;}
+  al.innerHTML=alertas.map(e=>{const s=statusAdm(e);const se=statusEnt(e);return`<div class="exp-card" style="cursor:pointer" onclick="abrirExpediente(${e.id})"><div class="exp-card-top"><div class="exp-card-body"><div class="exp-num">${e.num} · ${e.nombre}</div><div class="exp-inf">${ETAPAS[e.etapaIdx].nombre} · ${nombreEntidad(e.entidadId)}</div></div><span class="badge badge-${s.cls}"><span class="dot dot-${s.cls}"></span>${s.label}</span></div>${se&&se.cls==='warn'?`<div class="alerta-entidad"><i class="ti ti-building" style="font-size:13px"></i>${se.label}</div>`:''}</div>`;}).join('');
+}
+
+let pendingDelete=null;
+function renderExpList(){
+  const el=document.getElementById('exp-list');
+  if(expedientes.length===0){el.innerHTML='<div class="empty"><i class="ti ti-folder-open" style="font-size:28px;display:block;margin-bottom:8px"></i>No hay expedientes</div>';return;}
+  el.innerHTML=expedientes.map(e=>{
+    const s=statusAdm(e);
+    const stages=ETAPAS.map((et,i)=>{
+      if(i>e.etapaIdx) return ''; // no mostrar etapas futuras
+      let cls='';
+      if(i<e.etapaIdx) cls='done'; // etapas anteriores en verde
+      else if(i===e.etapaIdx) cls=`active etapa-${i}`; // etapa actual con color
+      return`<span class="stage-pill ${cls}" title="${et.nombre}">${et.nombre.split(' ')[0]}</span>`;
+    }).join('');
+    const pitsInfo=e.pits&&e.pits.length>0?e.pits:(e.codigoInfraccion?[{codigoInfraccion:e.codigoInfraccion,calificacion:e.calificacion,multaSoles:e.multaSoles}]:[]);
+    const pitsUnicos=pitsInfo.filter((p,i,arr)=>p.codigoInfraccion&&arr.findIndex(x=>x.codigoInfraccion===p.codigoInfraccion)===i);
+    const infBadge=pitsUnicos.map(p=>`<span class="badge ${califColor(p.calificacion||'Grave')}" style="margin-left:4px">${p.codigoInfraccion}${p.multaSoles?' · S/'+p.multaSoles.toLocaleString('es-PE'):''}</span>`).join('');
+    const actBadge=e.etapaIdx===6&&e.actuaciones&&e.actuaciones.length>0?`<span class="badge badge-purple" style="margin-left:4px"><i class="ti ti-gavel" style="font-size:10px"></i> ${e.actuaciones.length}</span>`:'';
+    return`<div class="exp-card" id="ecard-${e.id}">
+      <div class="exp-card-top">
+        <div class="exp-card-body" onclick="abrirExpediente(${e.id})">
+          <div class="exp-num">${e.num} ${infBadge}${actBadge}</div>
+          <div class="exp-inf">${e.nombre} · DNI ${e.dni} · Placa ${e.placa} · ${nombreEntidad(e.entidadId)}</div>
+          ${e.ultimoDoc?`<div class="exp-inf" style="margin-top:3px;color:#5b21b6"><i class="ti ti-file-description" style="font-size:11px;vertical-align:-1px;margin-right:3px"></i>${e.ultimoDoc}${e.ultimoDocFecha?' · '+fmtFecha(e.ultimoDocFecha):''}</div>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <span class="badge badge-${s.cls}"><span class="dot dot-${s.cls}"></span>${s.label}</span>
+          <button class="btn-del" style="color:#0055d4;border-color:#b8d0fc" onclick="editarExpediente(${e.id})" title="Editar"><i class="ti ti-pencil"></i></button>
+          <button class="btn-del" onclick="confirmarEliminar(${e.id})" title="Eliminar"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+      <div class="stages">${stages}</div>
+      <div id="confirm-${e.id}" style="display:none"></div>
+    </div>`;
+  }).join('');
+}
+
+function editarExpediente(id){
+  const e = expedientes.find(x=>x.id===id);
+  if(!e)return;
+  // Ir a pestaña Registrar
+  showTab('nuevo');
+  // Esperar que el DOM esté listo
+  setTimeout(()=>{
+    // Datos generales
+    document.getElementById('f-nombre').value = e.nombre||'';
+    document.getElementById('f-dni').value = e.dni||'';
+    document.getElementById('f-placa').value = e.placa||'';
+    document.getElementById('f-fecha-not').value = e.fechaNotificacion||'';
+    document.getElementById('f-fecha-ent').value = e.fechaNotificacionEntidad||'';
+    document.getElementById('f-fecha-rfs').value = e.fechaRfs||'';
+    document.getElementById('f-num-rfs').value = e.numRfs||'';
+    document.getElementById('f-exp-judicial').value = e.expJudicial||'';
+    document.getElementById('f-ultimo-doc').value = e.ultimoDoc||'';
+    document.getElementById('f-ultimo-doc-fecha').value = e.ultimoDocFecha||'';
+    document.getElementById('f-etapa').value = e.etapaIdx||0;
+    // Entidad
+    const selEnt = document.getElementById('f-entidad');
+    if(selEnt) selEnt.value = e.entidadId||'';
+    // PITs — limpiar primero
+    limpiarPits();
+    const pits = e.pits && e.pits.length>0 ? e.pits : [{num:e.num, fecha:e.fechaPapeleta, codigoInfraccion:e.codigoInfraccion, infraccion:e.infraccion, calificacion:e.calificacion, pctUit:e.pctUit, multaSoles:e.multaSoles}];
+    pits.forEach((p,i)=>{
+      const n = i+1;
+      if(n>1) agregarPitRow();
+      const pitEl = document.getElementById(`f-pit-${n}`);
+      if(pitEl) pitEl.value = p.num ? p.num.replace('N°','') : '';
+      const fechaEl = document.getElementById(`f-pit-fecha-${n}`);
+      if(fechaEl) fechaEl.value = p.fecha||'';
+      if(p.codigoInfraccion){
+        const inf = INFRACCIONES.find(x=>x.cod===p.codigoInfraccion);
+        if(inf){
+          infsPorPit[n] = inf;
+          const buscarEl = document.getElementById(`f-inf-buscar-${n}`);
+          if(buscarEl) buscarEl.value = `${inf.cod} — ${inf.txt.slice(0,50)}…`;
+          const badge = document.getElementById(`pit-badge-${n}`);
+          if(badge){badge.style.display='inline-flex';badge.className=`badge ${califColor(inf.calif)}`;badge.textContent=`${inf.cod} · ${inf.calif}`;}
+          const prev = document.getElementById(`inf-preview-${n}`);
+          if(prev){prev.classList.add('visible');prev.innerHTML=`<div class="inf-preview-cod">${inf.cod}</div><div style="font-size:12px;line-height:1.4">${inf.txt}</div><div class="inf-preview-badges"><span class="badge ${califColor(inf.calif)}">${inf.calif}</span><span class="badge badge-gray">${inf.pct}% UIT</span><span class="badge badge-gray">S/${(5500*inf.pct/100).toLocaleString('es-PE')}</span></div>`;}
+        }
+      }
+    });
+    // Cambiar botón registrar a "Guardar cambios" y guardar el id
+    const btnReg = document.querySelector('#tab-nuevo .btn-primary');
+    if(btnReg){
+      btnReg.textContent = 'Guardar cambios';
+      btnReg.setAttribute('data-edit-id', id);
+      btnReg.onclick = ()=>guardarCambios(id);
+    }
+    // Título del formulario
+    const titulo = document.querySelector('#tab-nuevo .section-title');
+    if(titulo) titulo.innerHTML = `<i class="ti ti-pencil" style="font-size:14px;vertical-align:-2px;margin-right:6px;color:#0055d4"></i>Editando: ${e.num} · ${e.nombre}`;
+  }, 100);
+}
+
+function guardarCambios(id){
+  const e = expedientes.find(x=>x.id===id);
+  if(!e)return;
+  const nombre=document.getElementById('f-nombre').value.trim();
+  const dni=document.getElementById('f-dni').value.trim();
+  const placa=document.getElementById('f-placa').value.trim();
+  const fechaNot=document.getElementById('f-fecha-not').value;
+  const fechaEnt=document.getElementById('f-fecha-ent').value;
+  const fechaRfs=document.getElementById('f-fecha-rfs').value;
+  const numRfs=document.getElementById('f-num-rfs').value.trim();
+  const entidadId=document.getElementById('f-entidad').value;
+  const etapaIdx=parseInt(document.getElementById('f-etapa').value);
+  const expJudicial=document.getElementById('f-exp-judicial').value.trim();
+  const ultimoDoc=document.getElementById('f-ultimo-doc').value.trim();
+  const ultimoDocFecha=document.getElementById('f-ultimo-doc-fecha').value;
+  const pitsRaw=leerPits();const pits=pitsRaw.filter((p,i,arr)=>arr.findIndex(x=>x.num===p.num&&x.codigoInfraccion===p.codigoInfraccion)===i);
+  if(!nombre){alert('Ingresa el nombre del administrado.');return;}
+  if(pits.length===0){alert('Ingresa al menos un N° de PIT.');return;}
+  const pitPrincipal=pits[0];
+  Object.assign(e,{
+    num:pitPrincipal.num, nombre, dni, placa,
+    codigoInfraccion:pitPrincipal.codigoInfraccion,
+    infraccion:pitPrincipal.infraccion,
+    calificacion:pitPrincipal.calificacion,
+    pctUit:pitPrincipal.pctUit,
+    multaSoles:pitPrincipal.multaSoles,
+    pits, fechaPapeleta:pitPrincipal.fecha,
+    fechaNotificacion:fechaNot,
+    fechaNotificacionEntidad:fechaEnt||null,
+    fechaRfs:fechaRfs||null,
+    numRfs:numRfs||null,
+    entidadId, etapaIdx,
+    expJudicial:expJudicial||null,
+    ultimoDoc:ultimoDoc||null,
+    ultimoDocFecha:ultimoDocFecha||null
+  });
+  save();
+  const btnReg=document.querySelector('#tab-nuevo .btn-primary');
+  if(btnReg){btnReg.textContent='Registrar expediente';btnReg.onclick=registrarExpediente;btnReg.removeAttribute('data-edit-id');}
+  const titulo=document.querySelector('#tab-nuevo .section-title');
+  if(titulo)titulo.innerHTML='Datos del expediente';
+  limpiarPits();
+  ['f-nombre','f-dni','f-placa','f-fecha-not','f-fecha-ent','f-fecha-rfs','f-num-rfs','f-exp-judicial','f-ultimo-doc','f-ultimo-doc-fecha'].forEach(f=>{const el=document.getElementById(f);if(el)el.value='';});
+  showTab('expedientes');
+}
+
+function confirmarEliminar(id){
+  if(pendingDelete&&pendingDelete!==id){const p=document.getElementById(`confirm-${pendingDelete}`);if(p){p.style.display='none';p.innerHTML='';}}
+  pendingDelete=id;
+  const box=document.getElementById(`confirm-${id}`);const e=expedientes.find(x=>x.id===id);
+  box.style.display='block';
+  box.innerHTML=`<div class="confirm-overlay"><div style="font-size:13px"><i class="ti ti-alert-triangle" style="font-size:14px;vertical-align:-2px;margin-right:4px;color:#9d5d00"></i>¿Eliminar <strong>${e.num} · ${e.nombre}</strong>?</div><div style="display:flex;gap:6px"><button class="btn-sec" style="padding:6px 10px;font-size:12px" onclick="cancelarEliminar(${id})">Cancelar</button><button style="background:#d70015;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;font-weight:500" onclick="eliminarExpediente(${id})">Eliminar</button></div></div>`;
+}
+function cancelarEliminar(id){const b=document.getElementById(`confirm-${id}`);if(b){b.style.display='none';b.innerHTML='';}pendingDelete=null;}
+function eliminarExpediente(id){expedientes=expedientes.filter(x=>x.id!==id);save();renderExpList();renderDashboard();pendingDelete=null;}
+
+function abrirExpediente(id){
+  const e=expedientes.find(x=>x.id===id);if(!e)return;
+  document.getElementById('exp-list-wrap').style.display='none';
+  const det=document.getElementById('exp-detail');det.style.display='block';
+  const s=statusAdm(e);const se=statusEnt(e);
+  const tl=ETAPAS.map((et,i)=>{
+    if(i>e.etapaIdx) return ''; // no mostrar etapas futuras
+    let dotCls='tl-dot',plazoCls='plazo-gray',plazoTxt='';
+    if(i<e.etapaIdx){dotCls='tl-dot done';plazoTxt='Completada';plazoCls='plazo-ok';}
+    else if(i===e.etapaIdx){dotCls=s.cls==='danger'?'tl-dot danger':s.cls==='warn'?'tl-dot warn':'tl-dot active';plazoTxt=s.label;plazoCls='plazo-'+s.cls;}
+    const entAlert=i===e.etapaIdx&&se?`<div class="plazo-entidad"><i class="ti ti-building" style="font-size:11px;vertical-align:-1px"></i> ${se.label}</div>`:'';
+    const actSection=i===6?renderActuacionesTL(e):'';
+    const expJudicialBadge=i===6&&e.expJudicial?`<div class="exp-judicial">
+      <i class="ti ti-gavel" style="font-size:11px;vertical-align:-1px;margin-right:4px"></i>Exp. Judicial: ${e.expJudicial}
+      <a href="https://sinoe.pj.gob.pe/anuncio/req_CodExp?nroexp=${e.expJudicial.replace('N°','').trim()}" target="_blank" style="margin-left:8px;background:#5b21b6;color:#fff;font-size:10px;padding:2px 7px;border-radius:5px;text-decoration:none;font-weight:500"><i class="ti ti-external-link" style="font-size:10px;vertical-align:-1px;margin-right:2px"></i>Ver en SINOE</a>
+      <a href="https://sinoe.pj.gob.pe" target="_blank" style="margin-left:3px;background:#7c3aed;color:#fff;font-size:10px;padding:2px 7px;border-radius:5px;text-decoration:none;font-weight:500"><i class="ti ti-login" style="font-size:10px;vertical-align:-1px;margin-right:2px"></i>Ingresar</a>
+    </div>`:'';
+    return`<div class="tl-item"><div class="tl-dot-wrap"><div class="${dotCls}"></div><div class="tl-line"></div></div><div class="tl-content"><div class="tl-name">${et.nombre}</div><div class="tl-meta">${et.base}</div>${plazoTxt?`<div class="tl-plazo ${plazoCls}">${plazoTxt}</div>`:''} ${entAlert}${expJudicialBadge}${actSection}</div></div>`;
+  }).join('');
+  const infRow=(!e.pits||e.pits.length<=1)&&e.codigoInfraccion?`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+    <span class="badge ${califColor(e.calificacion||'Grave')}">${e.codigoInfraccion} · ${e.calificacion||''}</span>
+    ${e.pctUit?`<span class="badge badge-gray">${e.pctUit}% UIT</span>`:''}
+    ${e.multaSoles?`<span class="badge badge-gray">S/${e.multaSoles.toLocaleString('es-PE')}</span>`:''}
+  </div>`:'';
+  det.innerHTML=`
+    <div style="margin-bottom:10px;display:flex;gap:8px">
+      <button class="btn-sec" onclick="volverLista()"><i class="ti ti-arrow-left" style="font-size:13px;vertical-align:-1px;margin-right:3px"></i>Volver</button>
+      <button class="btn-sec" style="color:#0055d4;border-color:#b8d0fc" onclick="editarExpediente(${id})"><i class="ti ti-pencil" style="font-size:13px;vertical-align:-1px;margin-right:3px"></i>Editar</button>
+      <button class="btn-sec" style="color:#1a7f37;border-color:#a3e6b8" onclick="abrirModalHonorario(${id}, '${honorarios.find(h=>h.expId===id) ? honorarios.find(h=>h.expId===id).id : ''}')"><i class="ti ti-cash" style="font-size:13px;vertical-align:-1px;margin-right:3px"></i>${honorarios.find(h=>h.expId===id)?'Editar honorario':'Registrar honorario'}</button>
+    </div>
+    <div class="detail-wrap">
+      <div class="detail-header">
+        <div>
+          <div class="detail-title">${e.num} · ${e.nombre}</div>
+          <div class="detail-sub">DNI ${e.dni} · Placa ${e.placa} · ${nombreEntidad(e.entidadId)}</div>
+          <!-- PITs múltiples -->
+          ${e.pits&&e.pits.length>1?`
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:4px">
+            ${e.pits.map((p,i)=>`<div style="display:flex;align-items:center;gap:6px;font-size:12px">
+              <span style="font-weight:600;color:#1d1d1f">PIT ${i+1}: ${p.num}</span>
+              ${p.fecha?`<span style="color:#6e6e73">${fmtFecha(p.fecha)}</span>`:''}
+              ${p.codigoInfraccion?`<span class="badge ${califColor(p.calificacion||'Grave')}">${p.codigoInfraccion}</span>`:''}
+              ${p.multaSoles?`<span class="badge badge-gray">S/${p.multaSoles.toLocaleString('es-PE')}</span>`:''}
+            </div>
+            ${p.infraccion?`<div style="font-size:11px;color:#6e6e73;margin-left:0;margin-bottom:2px">${p.infraccion.slice(0,80)}…</div>`:''}`).join('')}
+          </div>`:
+          `<div class="detail-sub" style="margin-top:3px;line-height:1.4">${e.infraccion||''}</div>`}
+          ${infRow}
+          <div class="detail-sub" style="margin-top:6px">Notif. administrado: ${fmtFecha(e.fechaNotificacion)}${e.fechaNotificacionEntidad?' · Notif. entidad: '+fmtFecha(e.fechaNotificacionEntidad):''}</div>
+          ${e.fechaRfs?`<div class="detail-sub" style="margin-top:3px;color:#9d5d00;font-weight:500"><i class="ti ti-file-check" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Notif. RFS${e.numRfs?' ('+e.numRfs+')':''}: ${fmtFecha(e.fechaRfs)}</div>`:''}
+          ${e.expJudicial?`<div class="detail-sub" style="margin-top:3px;color:#5b21b6;font-weight:500"><i class="ti ti-gavel" style="font-size:12px;vertical-align:-1px;margin-right:4px"></i>Exp. Judicial: ${e.expJudicial}
+          <a href="https://sinoe.pj.gob.pe/anuncio/req_CodExp?nroexp=${e.expJudicial.replace('N°','').trim()}" target="_blank" style="margin-left:8px;background:#5b21b6;color:#fff;font-size:11px;padding:3px 8px;border-radius:6px;text-decoration:none;font-weight:500"><i class="ti ti-external-link" style="font-size:11px;vertical-align:-1px;margin-right:3px"></i>Ver en SINOE</a>
+          <a href="https://sinoe.pj.gob.pe" target="_blank" style="margin-left:4px;background:#7c3aed;color:#fff;font-size:11px;padding:3px 8px;border-radius:6px;text-decoration:none;font-weight:500"><i class="ti ti-login" style="font-size:11px;vertical-align:-1px;margin-right:3px"></i>Ingresar al SINOE</a>
+          </div>`:''}
+        </div>
+        <span class="badge badge-${s.cls}"><span class="dot dot-${s.cls}"></span>${s.label}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div><div class="section-title" style="margin-bottom:10px">Cronología procesal</div><div>${tl}</div></div>
+        <div>
+          <div class="section-title" style="margin-bottom:4px">Generar escrito</div>
+          <div class="sub-title">Con IA · descarga en Word</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px">
+            <button class="action-btn" onclick="generarEscrito(${id},'descargo')"><i class="ti ti-file-text"></i>Descargo</button>
+            <button class="action-btn" onclick="generarEscrito(${id},'apelacion')"><i class="ti ti-file-arrow-up"></i>Apelación</button>
+            <button class="action-btn" onclick="generarEscrito(${id},'revocacion')"><i class="ti ti-rotate"></i>Revocación</button>
+            <button class="action-btn" onclick="generarEscrito(${id},'demanda')"><i class="ti ti-gavel"></i>Demanda</button>
+            <button class="action-btn" onclick="generarEscrito(${id},'caducidad')"><i class="ti ti-clock-off"></i>Caducidad</button>
+            <button class="action-btn" onclick="generarEscrito(${id},'prescripcion')"><i class="ti ti-calendar-off"></i>Prescripción</button>
+            <button class="action-btn" onclick="generarEscrito(${id},'cumplimiento')"><i class="ti ti-check"></i>Cumplimiento</button>
+          </div>
+          ${e.etapaIdx===6?`<div style="border-top:1px solid #e5e5ea;padding-top:10px;margin-bottom:10px">
+            <div class="section-title" style="font-size:13px;margin-bottom:8px"><i class="ti ti-gavel" style="font-size:13px;vertical-align:-1px;margin-right:4px"></i>Agregar actuación judicial</div>
+            <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+              <div class="form-group"><label>N° resolución</label><input type="text" id="act-num-${id}" placeholder="Ej: 03"></div>
+              <div class="form-group"><label>Fecha</label><input type="date" id="act-fecha-${id}"></div>
+              <div class="form-group"><label>Tipo</label><select id="act-tipo-${id}"><option>Auto admisorio</option><option>Resolución</option><option>Sentencia</option><option>Auto</option><option>Decreto</option><option>Otro</option></select></div>
+              <div class="form-group"><label>Descripción breve</label><input type="text" id="act-desc-${id}" placeholder="Resumen"></div>
+            </div>
+            <button class="btn-primary" style="font-size:12px;padding:7px 14px" onclick="agregarActuacion(${id})"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>Agregar</button>
+          </div>`:''}
+          <button class="action-btn" onclick="avanzarEtapa(${id})"><i class="ti ti-circle-check"></i>Marcar etapa como completada</button>
+        </div>
+      </div>
+      <div id="ai-result-${id}"></div>
+    </div>`;
+}
+
+function renderActuacionesTL(e){
+  if(!e.actuaciones||e.actuaciones.length===0)return'';
+  return`<div style="margin-top:8px">${e.actuaciones.map(a=>`<div class="act-item"><div style="flex:1"><div class="act-num"><i class="ti ti-file-description" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>${a.numero} — ${a.tipo}</div><div class="act-desc">${a.descripcion}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="act-date">${fmtFecha(a.fecha)}</div><button class="btn-del" style="padding:3px 6px" onclick="eliminarActuacion(${e.id},'${a.id}')"><i class="ti ti-trash" style="font-size:12px"></i></button></div></div>`).join('')}</div>`;
+}
+function agregarActuacion(id){
+  const e=expedientes.find(x=>x.id===id);if(!e)return;
+  const numRaw=document.getElementById(`act-num-${id}`).value.trim();
+  const fecha=document.getElementById(`act-fecha-${id}`).value;
+  const tipo=document.getElementById(`act-tipo-${id}`).value;
+  const desc=document.getElementById(`act-desc-${id}`).value.trim();
+  if(!numRaw||!fecha){alert('Ingresa número y fecha.');return;}
+  const num=numRaw.startsWith('N°')?numRaw:'N°'+numRaw.replace(/^N°/,'');
+  if(!e.actuaciones)e.actuaciones=[];
+  e.actuaciones.push({id:'a'+Date.now(),numero:num,tipo,fecha,descripcion:desc||tipo});
+  save();abrirExpediente(id);
+}
+function eliminarActuacion(expId,actId){
+  const e=expedientes.find(x=>x.id===expId);if(!e||!e.actuaciones)return;
+  e.actuaciones=e.actuaciones.filter(a=>a.id!==actId);save();abrirExpediente(expId);
+}
+function volverLista(){document.getElementById('exp-detail').style.display='none';document.getElementById('exp-list-wrap').style.display='block';renderExpList();}
+function avanzarEtapa(id){
+  const e=expedientes.find(x=>x.id===id);if(!e)return;
+  if(!e.etapasCompletadas.includes(e.etapaIdx))e.etapasCompletadas.push(e.etapaIdx);
+  if(e.etapaIdx<ETAPAS.length-1)e.etapaIdx++;
+  save();abrirExpediente(id);
+}
+
+let escritosCache={};
+async function generarEscrito(id,tipo){
+  const e=expedientes.find(x=>x.id===id);if(!e)return;
+  const tipoLabels={descargo:'Descargo',apelacion:'Apelación',revocacion:'Revocación y Nulidad',demanda:'Demanda Contencioso-Administrativa',caducidad:'Caducidad del PAS',prescripcion:'Prescripción de Multa',cumplimiento:'Cumplimiento del Acto Administrativo'};
+  const box=document.getElementById(`ai-result-${id}`);const cacheKey=`${id}_${tipo}`;
+  box.innerHTML=`<div class="ai-box"><div class="ai-label-row"><div class="ai-label"><div class="spinner"></div> Generando ${tipoLabels[tipo]}...</div></div><div class="ai-output" id="ai-stream-${id}"></div></div>`;
+  const prompt=`Eres un asistente jurídico especializado en el PASE (D.S.N°004-2020-MTC, TUO LPAG Ley N°27444, TUO Ley N°27584).
+Datos:
+- PIT principal: ${e.num}
+- Todos los PITs: ${e.pits?e.pits.map(p=>`${p.num} (${p.codigoInfraccion||'sin código'}${p.multaSoles?' S/'+p.multaSoles.toLocaleString('es-PE'):''})`).join(', '):e.num}
+- Administrado: ${e.nombre}
+- DNI: ${e.dni}
+- Placa: ${e.placa}
+- Código infracción: ${e.codigoInfraccion||''}
+- Calificación: ${e.calificacion||''}
+- Infracción: ${e.infraccion||''}
+- Multa: S/${e.multaSoles||''} (${e.pctUit||''}% UIT)
+- Fecha papeleta: ${e.fechaPapeleta}
+- Fecha notificación administrado: ${e.fechaNotificacion}
+- Entidad: ${nombreEntidad(e.entidadId)}
+- Etapa actual: ${ETAPAS[e.etapaIdx].nombre}
+${e.expJudicial?'- Expediente judicial: '+e.expJudicial:''}
+${e.fechaRfs?'- Fecha notificación RFS: '+e.fechaRfs+(e.numRfs?' ('+e.numRfs+')':''):''}
+Redacta un ${tipoLabels[tipo]} con: EXPEDIENTE, ESCRITO N°, SUMILLA, encabezado autoridad, I. PETITORIO, II. FUNDAMENTOS DE HECHO, III. FUNDAMENTOS DE DERECHO, IV. MEDIOS PROBATORIOS, POR TANTO.
+NUNCA espacio entre N° y el número (correcto: N°004, N°70355).`;
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
+    const data=await res.json();
+    const txt=data.content?.map(c=>c.text||'').join('')||'Error.';
+    escritosCache[cacheKey]={texto:txt,tipo:tipoLabels[tipo],exp:e};
+    document.getElementById(`ai-stream-${id}`).textContent=txt;
+    box.querySelector('.ai-label-row').innerHTML=`<div class="ai-label"><i class="ti ti-sparkles" style="font-size:13px"></i> ${tipoLabels[tipo]} generado</div><button class="btn-word" onclick="exportarWord('${cacheKey}')"><i class="ti ti-file-word" style="font-size:14px"></i> Exportar Word</button>`;
+  }catch(err){document.getElementById(`ai-stream-${id}`).textContent='Error de conexión.';}
+}
+async function exportarWord(cacheKey){
+  const cached=escritosCache[cacheKey];if(!cached)return;
+  const btn=event.target.closest('button');
+  if(btn){btn.disabled=true;btn.innerHTML='<div class="spinner"></div> Generando...';}
+  try{
+    const {Document,Packer,Paragraph,TextRun,AlignmentType}=docx;
+    const lineas=cached.texto.split('\n');const children=[];
+    const hoy=new Date().toLocaleDateString('es-PE',{day:'2-digit',month:'long',year:'numeric'});
+    for(const linea of lineas){
+      const txt=linea.trim();
+      if(!txt){children.push(new Paragraph({children:[new TextRun("")],spacing:{after:80}}));continue;}
+      const esCab=/^(EXPEDIENTE|ESCRITO|SUMILLA|SEÑOR|I\.|II\.|III\.|IV\.|POR TANTO|PETITORIO|FUNDAMENTOS|MEDIOS)/.test(txt);
+      const esSec=/^(I\.|II\.|III\.|IV\.)/.test(txt);
+      children.push(new Paragraph({alignment:esSec||esCab&&txt.startsWith('SEÑOR')?AlignmentType.LEFT:AlignmentType.JUSTIFIED,spacing:{after:esSec?120:80,before:esSec?120:0},children:[new TextRun({text:txt,bold:esCab||esSec,size:esSec?24:22,font:"Arial"})]}));
+    }
+    const doc=new Document({styles:{default:{document:{run:{font:"Arial",size:22}}}},sections:[{properties:{page:{size:{width:11906,height:16838},margin:{top:1440,right:1134,bottom:1440,left:1701}}},children:[new Paragraph({alignment:AlignmentType.RIGHT,spacing:{after:240},children:[new TextRun({text:`Satipo, ${hoy}`,size:20,font:"Arial",color:"444444"})]}), ...children]}]});
+    const blob=await Packer.toBlob(doc);const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`${cached.tipo.replace(/\s+/g,'_')}_${cached.exp.num.replace('N°','')}_${cached.exp.nombre.split(',')[0]}.docx`;a.click();URL.revokeObjectURL(url);
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-file-word" style="font-size:14px"></i> Exportar Word';}
+  }catch(err){if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-file-word" style="font-size:14px"></i> Exportar Word';}alert('Error: '+err.message);}
+}
+
+// ============================================================
+// PITs MÚLTIPLES
+// ============================================================
+let pitCount = 1;
+let infsPorPit = {}; // { 1: infObj, 2: infObj, ... }
+
+function buscarInfraccionPit(n){
+  const q = (document.getElementById(`f-inf-buscar-${n}`)||{value:''}).value.trim().toLowerCase();
+  const dd = document.getElementById(`inf-dropdown-${n}`);
+  if(!dd)return;
+  if(!q){dd.classList.remove('open');return;}
+  const codLimpio = q.replace(/[-\s]/g,'');
+  const res = INFRACCIONES.filter(i=>{
+    const cod = i.cod.toLowerCase().replace(/[-\s]/g,'');
+    return cod.includes(codLimpio)||i.txt.toLowerCase().includes(q)||i.calif.toLowerCase().includes(q);
+  }).slice(0,10);
+  if(res.length===0){dd.innerHTML='<div style="padding:10px 12px;font-size:13px;color:#6e6e73">Sin resultados</div>';dd.classList.add('open');return;}
+  dd.innerHTML=res.map(i=>`<div class="inf-item" onclick="seleccionarInfraccionPit(${n},'${i.cod}')">
+    <div class="inf-cod ${califCodColor(i.calif)}">${i.cod}</div>
+    <div><div class="inf-txt">${i.txt.length>70?i.txt.slice(0,70)+'…':i.txt}</div>
+    <div class="inf-meta">${i.calif} · ${i.pct}% UIT · S/${(5500*i.pct/100).toLocaleString('es-PE')}</div></div>
+  </div>`).join('');
+  dd.classList.add('open');
+}
+
+function seleccionarInfraccionPit(n, cod){
+  const inf = INFRACCIONES.find(i=>i.cod===cod);
+  if(!inf)return;
+  infsPorPit[n] = inf;
+  const input = document.getElementById(`f-inf-buscar-${n}`);
+  if(input) input.value = `${inf.cod} — ${inf.txt.slice(0,50)}${inf.txt.length>50?'…':''}`;
+  const dd = document.getElementById(`inf-dropdown-${n}`);
+  if(dd) dd.classList.remove('open');
+  const badge = document.getElementById(`pit-badge-${n}`);
+  if(badge){badge.style.display='inline-flex';badge.className=`badge ${califColor(inf.calif)}`;badge.textContent=`${inf.cod} · ${inf.calif}`;}
+  const prev = document.getElementById(`inf-preview-${n}`);
+  if(prev){
+    prev.classList.add('visible');
+    prev.innerHTML=`<div class="inf-preview-cod">${inf.cod}</div><div style="font-size:12px;line-height:1.4">${inf.txt}</div>
+    <div class="inf-preview-badges"><span class="badge ${califColor(inf.calif)}">${inf.calif}</span><span class="badge badge-gray">${inf.pct}% UIT</span><span class="badge badge-gray">S/${(5500*inf.pct/100).toLocaleString('es-PE')}</span></div>`;
+  }
+}
+
+function agregarPitRow(){
+  if(pitCount>=5){alert('Máximo 5 PITs por expediente.');return;}
+  pitCount++;
+  const n = pitCount;
+  const container = document.getElementById('pit-extra-rows');
+  const div = document.createElement('div');
+  div.className = 'pit-row';
+  div.id = `pit-row-${n}`;
+  div.style.cssText = 'background:#f9f9fb;border:1px solid #e5e5ea;border-radius:10px;padding:12px';
+  div.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:start">
+      <div class="form-group"><label>N° PIT ${n} <span style="font-size:11px;color:#6e6e73">(opcional)</span></label><input type="text" id="f-pit-${n}" placeholder="Ej: 70356"></div>
+      <div class="form-group"><label>Fecha papeleta</label><input type="date" id="f-pit-fecha-${n}"></div>
+      <div class="form-group">
+        <label>Código infracción</label>
+        <div class="inf-search-wrap">
+          <input type="text" id="f-inf-buscar-${n}" placeholder="G58, M01..." autocomplete="off" oninput="buscarInfraccionPit(${n})" onfocus="buscarInfraccionPit(${n})">
+          <div class="inf-dropdown" id="inf-dropdown-${n}"></div>
+        </div>
+      </div>
+      <div style="padding-top:18px;display:flex;align-items:center;gap:6px">
+        <span class="badge badge-gray" id="pit-badge-${n}" style="display:none"></span>
+        <button type="button" class="btn-del" style="padding:4px 7px" onclick="eliminarPitRow(${n})"><i class="ti ti-trash" style="font-size:13px"></i></button>
+      </div>
+    </div>
+    <div class="inf-preview" id="inf-preview-${n}"></div>`;
+  container.appendChild(div);
+  if(pitCount>=5){
+    const btn=document.getElementById('btn-add-pit');
+    if(btn)btn.style.display='none';
+  }
+}
+
+function limpiarPitRow(n){
+  const numEl=document.getElementById(`f-pit-${n}`);if(numEl)numEl.value='';
+  const fechaEl=document.getElementById(`f-pit-fecha-${n}`);if(fechaEl)fechaEl.value='';
+  const buscarEl=document.getElementById(`f-inf-buscar-${n}`);if(buscarEl)buscarEl.value='';
+  const dd=document.getElementById(`inf-dropdown-${n}`);if(dd)dd.classList.remove('open');
+  const prev=document.getElementById(`inf-preview-${n}`);if(prev){prev.classList.remove('visible');prev.innerHTML='';}
+  const badge=document.getElementById(`pit-badge-${n}`);if(badge)badge.style.display='none';
+  delete infsPorPit[n];
+}
+
+function eliminarPitRow(n){
+  const row = document.getElementById(`pit-row-${n}`);
+  if(row) row.remove();
+  delete infsPorPit[n];
+  const btn=document.getElementById('btn-add-pit');
+  if(btn)btn.style.display='';
+  pitCount = Math.max(1, pitCount-1);
+}
+
+function leerPits(){
+  const pits = [];
+  for(let i=1;i<=5;i++){
+    const numEl = document.getElementById(`f-pit-${i}`);
+    if(!numEl) continue;
+    const num = numEl.value.trim();
+    if(!num) continue;
+    const fecha = (document.getElementById(`f-pit-fecha-${i}`)||{value:''}).value;
+    const inf = infsPorPit[i]||null;
+    pits.push({
+      num: `N°${num.replace(/^N°/,'')}`,
+      fecha,
+      codigoInfraccion: inf?inf.cod:'',
+      infraccion: inf?`${inf.cod} — ${inf.txt}`:'',
+      calificacion: inf?inf.calif:'',
+      pctUit: inf?inf.pct:null,
+      multaSoles: inf?5500*inf.pct/100:null
+    });
+  }
+  return pits;
+}
+
+function limpiarPits(){
+  pitCount=1;infsPorPit={};
+  for(let i=1;i<=5;i++){
+    ['f-pit-','f-pit-fecha-','f-inf-buscar-'].forEach(p=>{const el=document.getElementById(p+i);if(el)el.value='';});
+    const dd=document.getElementById(`inf-dropdown-${i}`);if(dd)dd.classList.remove('open');
+    const prev=document.getElementById(`inf-preview-${i}`);if(prev){prev.classList.remove('visible');prev.innerHTML='';}
+    const badge=document.getElementById(`pit-badge-${i}`);if(badge)badge.style.display='none';
+  }
+  const extraRows=document.getElementById('pit-extra-rows');if(extraRows)extraRows.innerHTML='';
+  const btn=document.getElementById('btn-add-pit');if(btn)btn.style.display='';
+}
+
+function registrarExpediente(){
+  const nombre=document.getElementById('f-nombre').value.trim();
+  const dni=document.getElementById('f-dni').value.trim();
+  const placa=document.getElementById('f-placa').value.trim();
+  const fechaNot=document.getElementById('f-fecha-not').value;
+  const fechaEnt=document.getElementById('f-fecha-ent').value;
+  const fechaRfs=document.getElementById('f-fecha-rfs').value;
+  const numRfs=document.getElementById('f-num-rfs').value.trim();
+  const entidadId=document.getElementById('f-entidad').value;
+  const etapaIdx=parseInt(document.getElementById('f-etapa').value);
+  const expJudicial=document.getElementById('f-exp-judicial').value.trim();
+  const ultimoDoc=document.getElementById('f-ultimo-doc').value.trim();
+  const ultimoDocFecha=document.getElementById('f-ultimo-doc-fecha').value;
+  const pitsRaw=leerPits();const pits=pitsRaw.filter((p,i,arr)=>arr.findIndex(x=>x.num===p.num&&x.codigoInfraccion===p.codigoInfraccion)===i);
+  if(!nombre){alert('Ingresa el nombre del administrado.');return;}
+  if(pits.length===0){alert('Ingresa al menos un N° de PIT.');return;}
+  // PIT principal = primero
+  const pitPrincipal = pits[0];
+  expedientes.push({
+    id:Date.now(),
+    num: pitPrincipal.num,
+    nombre, dni, placa,
+    codigoInfraccion: pitPrincipal.codigoInfraccion,
+    infraccion: pitPrincipal.infraccion,
+    calificacion: pitPrincipal.calificacion,
+    pctUit: pitPrincipal.pctUit,
+    multaSoles: pitPrincipal.multaSoles,
+    pits: pits,
+    fechaPapeleta: pitPrincipal.fecha,
+    fechaNotificacion: fechaNot,
+    fechaNotificacionEntidad: fechaEnt||null,
+    fechaRfs: fechaRfs||null,
+    numRfs: numRfs||null,
+    entidadId, etapaIdx, etapasCompletadas:[], actuaciones:[],
+    expJudicial: expJudicial||null,
+    ultimoDoc: ultimoDoc||null,
+    ultimoDocFecha: ultimoDocFecha||null,
+    creado: new Date().toISOString()
+  });
+  save();
+  limpiarPits();
+  ['f-nombre','f-dni','f-placa','f-fecha-not','f-fecha-ent','f-fecha-rfs','f-num-rfs','f-exp-judicial','f-ultimo-doc','f-ultimo-doc-fecha'].forEach(f=>{const el=document.getElementById(f);if(el)el.value='';});
+  showTab('expedientes');
+}
+
+function renderReportes(){
+  const total=expedientes.length;
+  const porEtapa=ETAPAS.map((et,i)=>({nombre:et.nombre,count:expedientes.filter(e=>e.etapaIdx===i).length}));
+  const vencidos=expedientes.filter(e=>{const s=statusAdm(e);return s.cls==='danger'&&s.dias!==null;}).length;
+  const proximos=expedientes.filter(e=>statusAdm(e).cls==='warn').length;
+  const sinPlazo=expedientes.filter(e=>statusAdm(e).cls==='gray').length;
+  const entVencidas=expedientes.filter(e=>{const s=statusEnt(e);return s&&s.label.includes('vencido');}).length;
+  const judiciales=expedientes.filter(e=>e.etapaIdx===6).length;
+  const maxE=Math.max(...porEtapa.map(x=>x.count),1);
+  const colors=['#378ADD','#1D9E75','#D85A30','#D4537E','#BA7517','#639922'];
+  document.getElementById('report-content').innerHTML=`
+    <div class="report-card"><div class="section-title">Expedientes por etapa</div>${porEtapa.map((x,i)=>`<div class="bar-row"><div class="bar-label" title="${x.nombre}">${x.nombre.split(' ')[0]}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.count/maxE*100)}%;background:${colors[i]}"></div></div><div class="bar-count">${x.count}</div></div>`).join('')}</div>
+    <div class="report-card"><div class="section-title">Estado de plazos</div><div style="display:flex;flex-direction:column;gap:10px;margin-top:6px">
+      <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:#6e6e73">Vencidos (administrado)</span><span class="badge badge-danger">${vencidos}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:#6e6e73">Próximos a vencer (≤5 d.h.)</span><span class="badge badge-warn">${proximos}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:#6e6e73">Entidades con plazo vencido</span><span class="badge badge-purple">${entVencidas}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:#6e6e73">En etapa judicial</span><span class="badge badge-purple">${judiciales}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:#6e6e73">Sin plazo / otros</span><span class="badge badge-gray">${sinPlazo}</span></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid #e5e5ea;padding-top:8px;margin-top:4px"><span style="font-size:13px;font-weight:600">Total expedientes</span><span class="badge badge-info">${total}</span></div>
+    </div></div>`;
+  renderTablaReporte();
+}
+
+function renderTablaReporte(){
+  const q=(document.getElementById('rep-buscar')||{value:''}).value.trim().toLowerCase();
+  const lista=q?expedientes.filter(e=>
+    e.nombre.toLowerCase().includes(q)||
+    e.num.toLowerCase().includes(q)||
+    e.placa.toLowerCase().includes(q)||
+    e.dni.includes(q)||
+    (e.codigoInfraccion||'').toLowerCase().includes(q)||
+    nombreEntidad(e.entidadId).toLowerCase().includes(q)
+  ):expedientes;
+  const el=document.getElementById('report-tabla');
+  if(!el)return;
+  if(lista.length===0){el.innerHTML='<div class="empty" style="padding:1.5rem">Sin resultados</div>';return;}
+  const hoy=new Date().toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  let html=`<div style="font-size:11px;color:#6e6e73;margin-bottom:8px">Total: ${lista.length} expediente(s) · Generado: ${hoy}</div>`;
+  html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px" id="reporte-tabla-print">';
+  html+=`<thead><tr style="background:#f5f5f7;border-bottom:2px solid #d2d2d7">
+    <th style="text-align:left;padding:8px 10px;font-weight:600;color:#1d1d1f">N° PIT</th>
+    <th style="text-align:left;padding:8px 10px;font-weight:600;color:#1d1d1f">Administrado</th>
+    <th style="text-align:left;padding:8px 10px;font-weight:600;color:#1d1d1f">DNI</th>
+    <th style="text-align:left;padding:8px 10px;font-weight:600;color:#1d1d1f">Placa</th>
+    <th style="text-align:left;padding:8px 10px;font-weight:600;color:#1d1d1f">Infracción</th>
+    <th style="text-align:left;padding:8px 10px;font-weight:600;color:#1d1d1f">Entidad</th>
+    <th style="text-align:left;padding:8px 10px;font-weight:600;color:#1d1d1f">Etapa</th>
+    <th style="text-align:left;padding:8px 10px;font-weight:600;color:#1d1d1f">Notif.</th>
+    <th style="text-align:left;padding:8px 10px;font-weight:600;color:#1d1d1f">Estado plazo</th>
+    <th style="text-align:left;padding:8px 10px;font-weight:600;color:#1d1d1f">Exp. Judicial</th>
+  </tr></thead><tbody>`;
+  lista.forEach((e,i)=>{
+    const s=statusAdm(e);
+    const colorFila=i%2===0?'#fff':'#fafafa';
+    const pits=e.pits&&e.pits.length>1?e.pits.map(p=>p.num).join(', '):e.num;
+    const infs=e.pits&&e.pits.length>1?e.pits.map(p=>p.codigoInfraccion||'').filter(Boolean).join(', '):e.codigoInfraccion||'';
+    html+=`<tr style="background:${colorFila};border-bottom:1px solid #f0f0f0">
+      <td style="padding:7px 10px;font-weight:600">${pits}</td>
+      <td style="padding:7px 10px">${e.nombre}</td>
+      <td style="padding:7px 10px">${e.dni||'—'}</td>
+      <td style="padding:7px 10px">${e.placa||'—'}</td>
+      <td style="padding:7px 10px">${infs||'—'}</td>
+      <td style="padding:7px 10px">${nombreEntidad(e.entidadId)}</td>
+      <td style="padding:7px 10px">${ETAPAS[e.etapaIdx]?ETAPAS[e.etapaIdx].nombre:'—'}</td>
+      <td style="padding:7px 10px">${fmtFecha(e.fechaNotificacion)}</td>
+      <td style="padding:7px 10px"><span style="color:${s.cls==='danger'?'#d70015':s.cls==='warn'?'#9d5d00':s.cls==='ok'?'#1a7f37':'#6e6e73'};font-weight:500">${s.label}</span></td>
+      <td style="padding:7px 10px;font-size:11px;color:#5b21b6">${e.expJudicial||'—'}</td>
+    </tr>`;
+    // PITs adicionales
+    if(e.pits&&e.pits.length>1){
+      e.pits.slice(1).forEach(p=>{
+        html+=`<tr style="background:${colorFila};border-bottom:1px solid #f0f0f0">
+          <td style="padding:3px 10px 7px 20px;color:#6e6e73;font-size:11px">↳ ${p.num}</td>
+          <td colspan="3" style="padding:3px 10px 7px;color:#6e6e73;font-size:11px">${p.codigoInfraccion||''} ${p.infraccion?'— '+p.infraccion.slice(0,60):''}${(p.infraccion||'').length>60?'…':''}</td>
+          <td colspan="6"></td>
+        </tr>`;
+      });
+    }
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+}
+
+function imprimirReporte(){
+  if(expedientes.length===0){alert('No hay expedientes para exportar.');return;}
+  const hoy=new Date().toISOString().slice(0,10);
+  const total=expedientes.length;
+  const vencidos=expedientes.filter(e=>{const s=statusAdm(e);return s.cls==='danger'&&s.dias!==null;}).length;
+  const proximos=expedientes.filter(e=>statusAdm(e).cls==='warn').length;
+  const judiciales=expedientes.filter(e=>e.etapaIdx===6).length;
+
+  // Encabezado resumen
+  let csv=`CONTROL PASE - REPORTE DE EXPEDIENTES\n`;
+  csv+=`Generado:;${hoy};Total:;${total};Vencidos:;${vencidos};Próximos a vencer:;${proximos};En etapa judicial:;${judiciales}\n\n`;
+
+  // Cabecera tabla
+  csv+=`N° PIT(s);Administrado;DNI;Placa;Código Infracción;Descripción Infracción;Calificación;Multa S/;Entidad;Etapa;Fecha Notif. Administrado;Fecha Notif. Entidad;Fecha RFS;N° RFS;Estado Plazo;Exp. Judicial\n`;
+
+  // Filas
+  expedientes.forEach(e=>{
+    const s=statusAdm(e);
+    const pits=e.pits&&e.pits.length>1?e.pits.map(p=>p.num).join(' / '):e.num;
+    const infs=e.pits&&e.pits.length>1?e.pits.map(p=>p.codigoInfraccion||'').filter(Boolean).join(' / '):e.codigoInfraccion||'';
+    const descs=e.pits&&e.pits.length>1?e.pits.map(p=>p.infraccion?p.infraccion.replace(/;/g,','):'').join(' / '):(e.infraccion||'').replace(/;/g,',');
+    const multa=e.multaSoles?'S/'+e.multaSoles.toLocaleString('es-PE'):'';
+    csv+=`${pits};${e.nombre};${e.dni||''};${e.placa||''};${infs};${descs};${e.calificacion||''};${multa};${nombreEntidad(e.entidadId)};${ETAPAS[e.etapaIdx]?ETAPAS[e.etapaIdx].nombre:''};${fmtFecha(e.fechaNotificacion)};${fmtFecha(e.fechaNotificacionEntidad)};${fmtFecha(e.fechaRfs)};${e.numRfs||''};${s.label};${e.expJudicial||''}\n`;
+  });
+
+  // Descargar
+  const BOM='\uFEFF'; // Para que Excel reconozca tildes
+  const blob=new Blob([BOM+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`Reporte_PASE_${hoy}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// MÓDULO DE HONORARIOS
+// ============================================================
+let honorarios = [];
+try { honorarios = JSON.parse(localStorage.getItem('pase_honorarios_v6') || '[]'); } catch(e) { honorarios = []; }
+
+function saveHonorarios() {
+  try { localStorage.setItem('pase_honorarios_v6', JSON.stringify(honorarios)); } catch(e) {}
+}
+
+function totalPagado(hon) {
+  return (hon.pagos || []).filter(p => p.estado === 'pagado').reduce((s, p) => s + (parseFloat(p.monto) || 0), 0);
+}
+function totalHonorario(hon) {
+  return (parseFloat(hon.honorarioFijo) || 0) + (parseFloat(hon.adicionalEtapa) || 0);
+}
+function saldoPendiente(hon) {
+  return Math.max(0, totalHonorario(hon) - totalPagado(hon));
+}
+
+function renderHonorarios() {
+  // Métricas
+  const totalExp = honorarios.length;
+  const totalCobrar = honorarios.reduce((s, h) => s + totalHonorario(h), 0);
+  const totalCobrado = honorarios.reduce((s, h) => s + totalPagado(h), 0);
+  const totalPendiente = honorarios.reduce((s, h) => s + saldoPendiente(h), 0);
+  const honVencidos = honorarios.filter(h => {
+    const pendiente = saldoPendiente(h);
+    if (pendiente <= 0) return false;
+    const pagosVencidos = (h.pagos || []).filter(p => p.estado === 'pendiente' && p.fechaVence && new Date(p.fechaVence) < new Date());
+    return pagosVencidos.length > 0;
+  }).length;
+
+  document.getElementById('hon-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Expedientes con honorario</div><div class="metric-val">${totalExp}</div></div>
+    <div class="metric"><div class="metric-label">Total a cobrar</div><div class="metric-val" style="font-size:18px">S/${totalCobrar.toLocaleString('es-PE', {minimumFractionDigits:2})}</div></div>
+    <div class="metric"><div class="metric-label">Total cobrado</div><div class="metric-val ok" style="font-size:18px">S/${totalCobrado.toLocaleString('es-PE', {minimumFractionDigits:2})}</div></div>
+    <div class="metric"><div class="metric-label">Saldo pendiente</div><div class="metric-val ${totalPendiente > 0 ? 'danger' : 'ok'}" style="font-size:18px">S/${totalPendiente.toLocaleString('es-PE', {minimumFractionDigits:2})}</div></div>`;
+
+  const el = document.getElementById('hon-list');
+  const q = (document.getElementById('hon-buscar')||{value:''}).value.trim().toLowerCase();
+  const lista = q ? honorarios.filter(h => {
+    const exp = expedientes.find(e => String(e.id) === String(h.expId));
+    return (exp && (
+      exp.nombre.toLowerCase().includes(q) ||
+      exp.num.toLowerCase().includes(q) ||
+      exp.placa.toLowerCase().includes(q) ||
+      nombreEntidad(exp.entidadId).toLowerCase().includes(q)
+    )) || (h.descripcion||'').toLowerCase().includes(q);
+  }) : honorarios;
+
+  if (lista.length === 0) {
+    el.innerHTML = q
+      ? `<div class="empty"><i class="ti ti-search" style="font-size:28px;display:block;margin-bottom:8px"></i>Sin resultados para "<strong>${q}</strong>"</div>`
+      : '<div class="empty"><i class="ti ti-cash" style="font-size:28px;display:block;margin-bottom:8px"></i>No hay honorarios registrados.<br><span style="font-size:12px">Abre un expediente y agrega el honorario desde ahí.</span></div>';
+    return;
+  }
+
+  el.innerHTML = lista.map(h => {
+    const exp = expedientes.find(e => String(e.id) === String(h.expId));
+    const pagado = totalPagado(h);
+    const total = totalHonorario(h);
+    const saldo = saldoPendiente(h);
+    const pct = total > 0 ? Math.round(pagado / total * 100) : 0;
+    const estado = saldo <= 0 ? 'cobrado' : pagado > 0 ? 'parcial' : 'pendiente';
+    const estadoLabel = saldo <= 0 ? 'Cobrado' : pagado > 0 ? 'Pago parcial' : 'Pendiente';
+    const estadoCls = saldo <= 0 ? 'badge-ok' : pagado > 0 ? 'badge-warn' : 'badge-danger';
+
+    const pagosHtml = (h.pagos || []).map(p => {
+      const vencido = p.estado === 'pendiente' && p.fechaVence && new Date(p.fechaVence) < new Date();
+      return `<div class="pago-row">
+        <div class="pago-info">
+          <div class="pago-concepto">${p.concepto || 'Pago'} ${p.recibo ? '· Recibo N°' + p.recibo : ''}</div>
+          <div class="pago-meta">${p.fecha ? fmtFecha(p.fecha) : '—'} ${p.fechaVence && p.estado === 'pendiente' ? '· Vence: ' + fmtFecha(p.fechaVence) : ''} ${vencido ? '<span style="color:#d70015;font-weight:600">· VENCIDO</span>' : ''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <span class="${p.estado === 'pagado' ? 'pago-monto' : 'pago-monto pago-pendiente'}">S/${parseFloat(p.monto || 0).toLocaleString('es-PE', {minimumFractionDigits:2})}</span>
+          <span class="badge ${p.estado === 'pagado' ? 'badge-ok' : vencido ? 'badge-danger' : 'badge-warn'}">${p.estado === 'pagado' ? 'Pagado' : 'Pendiente'}</span>
+          ${p.estado === 'pendiente' ? `<button class="btn-sec" style="padding:3px 8px;font-size:11px" onclick="marcarPagado('${h.id}','${p.id}')">Marcar pagado</button>` : ''}
+          <button class="btn-del" style="padding:3px 6px" onclick="eliminarPago('${h.id}','${p.id}')"><i class="ti ti-trash" style="font-size:12px"></i></button>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="hon-card">
+      <div class="hon-header">
+        <div>
+          <div class="hon-title">${exp ? exp.num + ' · ' + exp.nombre : h.expId}</div>
+          <div class="hon-sub">${exp ? nombreEntidad(exp.entidadId) + ' · ' + ETAPAS[exp.etapaIdx].nombre : ''}</div>
+          ${h.descripcion ? `<div class="hon-sub" style="margin-top:2px">${h.descripcion}</div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${estadoCls}">${estadoLabel}</span>
+          <button class="btn-sec" style="font-size:12px;padding:5px 10px" onclick="abrirModalPago('${h.id}')"><i class="ti ti-plus" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>Agregar pago</button>
+          <button class="btn-sec" style="font-size:12px;padding:5px 10px;color:#0055d4;border-color:#b8d0fc" onclick="abrirModalHonorario(${h.expId},'${h.id}')"><i class="ti ti-pencil" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>Editar</button>
+          <button class="btn-del" onclick="eliminarHonorario('${h.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+      <div class="hon-montos">
+        <div class="hon-monto"><div class="hon-monto-label">Honorario fijo</div><div class="hon-monto-val">S/${parseFloat(h.honorarioFijo || 0).toLocaleString('es-PE', {minimumFractionDigits:2})}</div></div>
+        <div class="hon-monto"><div class="hon-monto-label">Adicional por etapa</div><div class="hon-monto-val">S/${parseFloat(h.adicionalEtapa || 0).toLocaleString('es-PE', {minimumFractionDigits:2})}</div></div>
+        <div class="hon-monto"><div class="hon-monto-label">Total cobrado</div><div class="hon-monto-val cobrado">S/${pagado.toLocaleString('es-PE', {minimumFractionDigits:2})}</div></div>
+        <div class="hon-monto"><div class="hon-monto-label">Saldo pendiente</div><div class="hon-monto-val ${estado}">S/${saldo.toLocaleString('es-PE', {minimumFractionDigits:2})}</div></div>
+      </div>
+      <!-- Barra de progreso -->
+      <div style="height:6px;background:#f0f0f0;border-radius:4px;margin-bottom:12px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${pct >= 100 ? '#1a7f37' : pct > 0 ? '#9d5d00' : '#e5e5ea'};border-radius:4px;transition:width 0.3s"></div>
+      </div>
+      ${pagosHtml ? `<div style="margin-top:4px"><div style="font-size:12px;font-weight:500;color:#1d1d1f;margin-bottom:6px">Registro de pagos</div>${pagosHtml}</div>` : '<div style="font-size:12px;color:#6e6e73">Sin pagos registrados aún.</div>'}
+    </div>`;
+  }).join('');
+}
+
+function abrirModalHonorario(expId, honId) {
+  const exp = expedientes.find(e => e.id === expId);
+  if (!exp) return;
+  const existente = honId ? honorarios.find(h => h.id === honId) : honorarios.find(h => h.expId === expId);
+  const div = document.createElement('div');
+  div.className = 'modal-overlay';
+  div.id = 'modal-honorario';
+  div.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-title"><i class="ti ti-cash" style="font-size:16px;vertical-align:-2px;margin-right:6px"></i>${existente ? 'Editar honorario' : 'Registrar honorario'} — ${exp.num} · ${exp.nombre}</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Honorario fijo (S/)</label><input type="number" id="hon-fijo" placeholder="0.00" min="0" step="0.50" value="${existente ? existente.honorarioFijo : ''}"></div>
+        <div class="form-group"><label>Adicional por etapa (S/)</label><input type="number" id="hon-adicional" placeholder="0.00" min="0" step="0.50" value="${existente ? existente.adicionalEtapa : ''}"></div>
+        <div class="form-group full"><label>Descripción / acuerdo con el cliente</label><input type="text" id="hon-desc" placeholder="Ej: Honorario por descargo y apelación" value="${existente ? existente.descripcion : ''}"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sec" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn-primary" onclick="guardarHonorario('${expId}','${existente ? existente.id : ''}')">Guardar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+function guardarHonorario(expId, honId) {
+  const fijo = parseFloat(document.getElementById('hon-fijo').value) || 0;
+  const adicional = parseFloat(document.getElementById('hon-adicional').value) || 0;
+  const desc = document.getElementById('hon-desc').value.trim();
+  if (honId) {
+    const h = honorarios.find(x => x.id === honId);
+    if (h) { h.honorarioFijo = fijo; h.adicionalEtapa = adicional; h.descripcion = desc; }
+  } else {
+    honorarios.push({ id: 'h' + Date.now(), expId, honorarioFijo: fijo, adicionalEtapa: adicional, descripcion: desc, pagos: [] });
+  }
+  saveHonorarios();
+  cerrarModal();
+  showTab('honorarios');
+}
+
+function abrirModalPago(honId) {
+  const h = honorarios.find(x => x.id === honId);
+  const exp = h ? expedientes.find(e => String(e.id) === String(h.expId)) : null;
+  const saldo = h ? saldoPendiente(h) : 0;
+  const div = document.createElement('div');
+  div.className = 'modal-overlay';
+  div.id = 'modal-pago';
+  div.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-title"><i class="ti ti-receipt" style="font-size:16px;vertical-align:-2px;margin-right:6px"></i>Registrar pago</div>
+      ${exp ? `<div style="background:#f5f5f7;border-radius:8px;padding:10px 12px;margin-bottom:14px">
+        <div style="font-size:13px;font-weight:600;color:#1d1d1f">${exp.nombre}</div>
+        <div style="font-size:12px;color:#6e6e73;margin-top:2px">${exp.num} · ${exp.placa||'—'} · ${nombreEntidad(exp.entidadId)}</div>
+        <div style="display:flex;gap:10px;margin-top:6px">
+          <span style="font-size:12px;color:#6e6e73">Total acordado: <strong style="color:#1d1d1f">S/${(totalHonorario(h)||0).toLocaleString('es-PE',{minimumFractionDigits:2})}</strong></span>
+          <span style="font-size:12px;color:#6e6e73">Cobrado: <strong style="color:#1a7f37">S/${(totalPagado(h)||0).toLocaleString('es-PE',{minimumFractionDigits:2})}</strong></span>
+          <span style="font-size:12px;color:#6e6e73">Saldo: <strong style="color:${saldo>0?'#d70015':'#1a7f37'}">S/${saldo.toLocaleString('es-PE',{minimumFractionDigits:2})}</strong></span>
+        </div>
+      </div>` : ''}
+      <div class="form-grid">
+        <div class="form-group full"><label>Concepto del pago</label>
+          <select id="pago-concepto">
+            <option>Pago inicial</option>
+            <option>Cuota 1</option><option>Cuota 2</option><option>Cuota 3</option><option>Cuota 4</option>
+            <option>Pago total</option><option>Saldo final</option><option>Honorario adicional</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Monto (S/)</label><input type="number" id="pago-monto" placeholder="0.00" min="0" step="0.50"></div>
+        <div class="form-group"><label>Fecha de pago</label><input type="date" id="pago-fecha" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="form-group"><label>Estado</label>
+          <select id="pago-estado">
+            <option value="pagado">Pagado</option>
+            <option value="pendiente">Pendiente</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Fecha de vencimiento <span style="font-size:11px;color:#6e6e73">(si es pendiente)</span></label><input type="date" id="pago-vence"></div>
+        <div class="form-group"><label>N° recibo / comprobante</label><input type="text" id="pago-recibo" placeholder="Ej: 001"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sec" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn-primary" onclick="guardarPago('${honId}')">Registrar pago</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+}
+
+function guardarPago(honId) {
+  const h = honorarios.find(x => x.id === honId);
+  if (!h) return;
+  const monto = parseFloat(document.getElementById('pago-monto').value) || 0;
+  const fecha = document.getElementById('pago-fecha').value;
+  const estado = document.getElementById('pago-estado').value;
+  const fechaVence = document.getElementById('pago-vence').value;
+  const recibo = document.getElementById('pago-recibo').value.trim();
+  const concepto = document.getElementById('pago-concepto').value;
+  if (!monto) { alert('Ingresa el monto del pago.'); return; }
+  if (!h.pagos) h.pagos = [];
+  h.pagos.push({ id: 'p' + Date.now(), concepto, monto, fecha, estado, fechaVence: fechaVence || null, recibo });
+  saveHonorarios();
+  cerrarModal();
+  renderHonorarios();
+}
+
+function marcarPagado(honId, pagoId) {
+  const h = honorarios.find(x => x.id === honId);
+  if (!h) return;
+  const p = (h.pagos || []).find(x => x.id === pagoId);
+  if (p) { p.estado = 'pagado'; p.fecha = new Date().toISOString().slice(0, 10); }
+  saveHonorarios();
+  renderHonorarios();
+}
+
+function eliminarPago(honId, pagoId) {
+  const h = honorarios.find(x => x.id === honId);
+  if (!h) return;
+  h.pagos = (h.pagos || []).filter(p => p.id !== pagoId);
+  saveHonorarios();
+  renderHonorarios();
+}
+
+function eliminarHonorario(honId) {
+  if (!confirm('¿Eliminar este honorario y todos sus pagos?')) return;
+  honorarios = honorarios.filter(h => h.id !== honId);
+  saveHonorarios();
+  renderHonorarios();
+}
+
+function cerrarModal() {
+  ['modal-honorario', 'modal-pago'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+}
+
+function exportarHonorariosCSV() {
+  if (honorarios.length === 0) { alert('No hay honorarios para exportar.'); return; }
+  const hoy = new Date().toISOString().slice(0, 10);
+  let csv = 'HONORARIOS PASE\nGenerado:;' + hoy + '\n\n';
+  csv += 'Expediente;Administrado;Descripción;Honorario Fijo S/;Adicional S/;Total S/;Cobrado S/;Saldo S/;Estado\n';
+  honorarios.forEach(h => {
+    const exp = expedientes.find(e => String(e.id) === String(h.expId));
+    const total = totalHonorario(h);
+    const pagado = totalPagado(h);
+    const saldo = saldoPendiente(h);
+    const estado = saldo <= 0 ? 'Cobrado' : pagado > 0 ? 'Pago parcial' : 'Pendiente';
+    csv += `${exp ? exp.num : '—'};${exp ? exp.nombre : '—'};${h.descripcion || ''};${h.honorarioFijo || 0};${h.adicionalEtapa || 0};${total};${pagado};${saldo};${estado}\n`;
+    (h.pagos || []).forEach(p => {
+      csv += `;;;;;Pago: ${p.concepto};${p.monto};${p.estado === 'pagado' ? p.monto : 0};${p.estado === 'pagado' ? 'Pagado' : 'Pendiente'};Fecha: ${fmtFecha(p.fecha)};Recibo: ${p.recibo || '—'}\n`;
+    });
+  });
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `Honorarios_PASE_${hoy}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// EXPORTAR / IMPORTAR DATOS
+function exportarDatos(){
+  const datos={
+    expedientes,
+    entidades,
+    honorarios,
+    version:'v6',
+    fecha:new Date().toISOString()
+  };
+  const blob=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`PASE_respaldo_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  alert('✅ Datos exportados correctamente. Guarda este archivo JSON como respaldo.');
+}
+
+function importarDatos(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const datos=JSON.parse(e.target.result);
+      if(!datos.expedientes){alert('❌ Archivo inválido. No contiene datos de expedientes.');return;}
+      if(!confirm(`¿Importar ${datos.expedientes.length} expedientes${datos.honorarios?' y '+datos.honorarios.length+' honorarios':''}?\n\nEsto REEMPLAZARÁ los datos actuales.`))return;
+      expedientes=datos.expedientes||[];
+      entidades=datos.entidades||[...ENTIDADES_DEFAULT];
+      honorarios=datos.honorarios||[];
+      save();
+      saveHonorarios();
+      poblarSelectEntidad();
+      showTab('dashboard');
+      alert(`✅ Importación exitosa: ${expedientes.length} expedientes cargados.`);
+    }catch(err){
+      alert('❌ Error al importar: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+// INIT
+save();
+poblarSelectEntidad();
+renderDashboard();
+</script>
+</body>
+</html>
